@@ -39,95 +39,13 @@ namespace System.Application.Services.Implementation
         /// </summary>
         /// <param name="filePath"></param>
         /// <returns></returns>
-        public async Task<(bool state, ScriptDTO? model, string msg)> AddScriptAsync(string filePath, ScriptDTO? oldInfo = null, bool build = true, int? order = null, bool deleteFile = false, Guid? pid = null)
+        public async Task<(bool state, ScriptDTO? model, string msg)> AddScriptAsync(string filePath, ScriptDTO? oldInfo = null, bool build = true, int? order = null, bool deleteFile = false, Guid? pid = null, bool ignoreCache = false)
         {
             var fileInfo = new FileInfo(filePath);
             if (fileInfo.Exists)
             {
                 ScriptDTO.TryParse(filePath, out ScriptDTO? info);
-
-                if (info != null)
-                {
-                    try
-                    {
-                        if (info.Content != null)
-                        {
-                            var md5 = Hashs.String.MD5(info.Content);
-                            var sha512 = Hashs.String.SHA512(info.Content);
-                            if (await scriptRepository.ExistsScript(md5, sha512))
-                            {
-                                return (false, null, SR.Script_FileRepeat);
-                            }
-                            var url = Path.Combine(TAG, $"{md5}.js");
-                            var savePath = Path.Combine(IOPath.AppDataDirectory, url);
-                            var saveInfo = new FileInfo(savePath);
-                            if (!saveInfo.Directory.Exists)
-                            {
-                                saveInfo.Directory.Create();
-                            }
-                            if (saveInfo.Exists)
-                                saveInfo.Delete();
-                            fileInfo.CopyTo(savePath);
-                            if (oldInfo != null && oldInfo.LocalId > 0)
-                            {
-                                info.LocalId = oldInfo.LocalId;
-                                info.Id = oldInfo.Id;
-                                var state = await DeleteScriptAsync(oldInfo, false);
-                                if (!state.state)
-                                    return (false, null, SR.Script_FileDeleteError.Format(oldInfo.FilePath));
-                            }
-                            if (pid.HasValue)
-                                info.Id = pid.Value;
-                            var cachePath = Path.Combine(IOPath.CacheDirectory, url);
-                            info.FilePath = url;
-                            info.CachePath = url;
-                            if (await BuildScriptAsync(info, build))
-                            {
-                                var db = mapper.Map<Script>(info);
-                                db.MD5 = md5;
-                                db.SHA512 = sha512;
-                                if (order.HasValue)
-                                    db.Order = order.Value;
-                                else
-                                    db.Order = 10;
-                                try
-                                {
-                                    if (deleteFile)
-                                        fileInfo.Delete();
-                                }
-                                catch (Exception e) { logger.LogError(e.ToString()); }
-                                var state = (await scriptRepository.InsertOrUpdateAsync(db)).rowCount > 0;
-                                return (state, info, state ? SR.Script_SaveDbSuccess : SR.Script_SaveDBError);
-                            }
-                            else
-                            {
-                                var msg = SR.Script_BuildError.Format(filePath);
-                                logger.LogError(msg);
-                                toast.Show(msg);
-                                return (false, null, msg);
-                            }
-                        }
-                        else
-                        {
-                            var msg = SR.Script_ReadFileError.Format(filePath);
-                            logger.LogError(msg);
-                            toast.Show(msg);
-                            return (false, null, msg);
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        var msg = SR.Script_ReadFileError.Format(e.GetAllMessage());
-                        logger.LogError(e, msg);
-                        return (false, null, msg);
-                    }
-                }
-                else
-                {
-                    var msg = SR.Script_ReadFileError.Format(filePath); //$"文件解析失败，请检查格式:{filePath}";
-                    logger.LogError(msg);
-                    return (false, null, msg);
-                }
+                return await AddScriptAsync(fileInfo, info, oldInfo, build, order, deleteFile, pid, ignoreCache);
             }
             else
             {
@@ -136,6 +54,106 @@ namespace System.Application.Services.Implementation
                 return (false, null, msg);
             }
         }
+        public async Task<(bool state, ScriptDTO? model, string msg)> AddScriptAsync(FileInfo fileInfo, ScriptDTO? info, ScriptDTO? oldInfo = null, bool build = true, int? order = null, bool deleteFile = false, Guid? pid = null, bool ignoreCache = false)
+        {
+            if (info != null)
+            {
+                try
+                {
+                    if (info.Content != null)
+                    {
+                        var md5 = Hashs.String.MD5(info.Content);
+                        var sha512 = Hashs.String.SHA512(info.Content);
+                        if (!ignoreCache)
+                            if (await scriptRepository.ExistsScript(md5, sha512))
+                            {
+                                return (false, null, SR.Script_FileRepeat);
+                            }
+                        var url = Path.Combine(TAG, $"{md5}.js");
+                        var savePath = Path.Combine(IOPath.AppDataDirectory, url);
+                        var saveInfo = new FileInfo(savePath);
+                        var isNoRepeat = saveInfo.FullName != fileInfo.FullName;
+                        if (!saveInfo.Directory.Exists)
+                        {
+                            saveInfo.Directory.Create();
+                        }
+                        if (saveInfo.Exists)
+                        {
+                            if (isNoRepeat)
+                                saveInfo.Delete();
+                        }
+                        else
+                            fileInfo.CopyTo(savePath);
+                        if (oldInfo != null && oldInfo.LocalId > 0)
+                        {
+                            info.LocalId = oldInfo.LocalId;
+                            info.Id = oldInfo.Id;
+                            info.Order = oldInfo.Order;
+                            if (isNoRepeat)
+                            {
+                                var state = await DeleteScriptAsync(oldInfo, false);
+                                if (!state.state)
+                                    return (false, null, SR.Script_FileDeleteError.Format(oldInfo.FilePath));
+                            }
+                        }
+                        if (pid.HasValue)
+                            info.Id = pid.Value;
+                        var cachePath = Path.Combine(IOPath.CacheDirectory, url);
+                        info.FilePath = url;
+                        info.IsBuild = build;
+                        info.CachePath = url;
+                        if (await BuildScriptAsync(info, build))
+                        {
+                            var db = mapper.Map<Script>(info);
+                            db.MD5 = md5;
+                            db.SHA512 = sha512;
+                            if (db.Pid == Guid.Parse("00000000-0000-0000-0000-000000000001"))
+                                info.IsBasics = true;
+                            if (order.HasValue)
+                                db.Order = order.Value;
+                            else if (db.Order == 0)
+                                db.Order = 10;
+                            try
+                            {
+                                if (deleteFile)
+                                    fileInfo.Delete();
+                            }
+                            catch (Exception e) { logger.LogError(e.ToString()); }
+                            var state = (await scriptRepository.InsertOrUpdateAsync(db)).rowCount > 0;
+                            info.LocalId = db.Id;
+                            return (state, info, state ? SR.Script_SaveDbSuccess : SR.Script_SaveDBError);
+                        }
+                        else
+                        {
+                            var msg = SR.Script_BuildError.Format(fileInfo.FullName);
+                            logger.LogError(msg);
+                            toast.Show(msg);
+                            return (false, null, msg);
+                        }
+                    }
+                    else
+                    {
+                        var msg = SR.Script_ReadFileError.Format(fileInfo.FullName);
+                        logger.LogError(msg);
+                        toast.Show(msg);
+                        return (false, null, msg);
+                    }
+                }
+                catch (Exception e)
+                {
+                    var msg = SR.Script_ReadFileError.Format(e.GetAllMessage());
+                    logger.LogError(e, msg);
+                    return (false, null, msg);
+                }
+            }
+            else
+            {
+                var msg = string.Format(SR.Script_ReadFileError, fileInfo.FullName); //$"文件解析失败，请检查格式:{filePath}";
+                logger.LogError(msg);
+                return (false, null, msg);
+            }
+        }
+
         public async Task<bool> BuildScriptAsync(ScriptDTO model, bool build = true)
         {
             try
@@ -145,7 +163,7 @@ namespace System.Application.Services.Implementation
                     var scriptContent = new StringBuilder();
                     if (build)
                     {
-                        scriptContent.AppendLine("(function() {");
+                        scriptContent.AppendLine("(function () {");
                         foreach (var item in model.RequiredJsArray)
                         {
                             try
@@ -160,8 +178,9 @@ namespace System.Application.Services.Implementation
                                 toast.Show(errorMsg);
                             }
                         }
+                        scriptContent.AppendLine("var jq = jQuery.noConflict();(($, jQuery) => {");
                         scriptContent.AppendLine(model.Content);
-                        scriptContent.AppendLine("})( )");
+                        scriptContent.AppendLine("})(jq, jq)})()");
                     }
                     else
                     {
@@ -175,6 +194,7 @@ namespace System.Application.Services.Implementation
                     }
                     if (fileInfo.Exists)
                         fileInfo.Delete();
+                    model.Content = scriptContent.ToString();
                     using (var stream = fileInfo.CreateText())
                     {
                         stream.Write(scriptContent);
@@ -288,11 +308,68 @@ namespace System.Application.Services.Implementation
         public async Task<IEnumerable<ScriptDTO>> GetAllScript()
         {
             var scriptList = mapper.Map<List<ScriptDTO>>(await scriptRepository.GetAllAsync());
+
+            var basicsId = Guid.Parse("00000000-0000-0000-0000-000000000001");
+            if (scriptList.Count(x => x.Id == basicsId) > 1)
+            {
+                var allpath = scriptList.Where(x => x.Id == basicsId);
+                string? savePath = null;
+                foreach (var item in allpath)
+                {
+                    var path = new FileInfo(Path.Combine(IOPath.AppDataDirectory, item.FilePath));
+                    if (path.Exists)
+                    {
+                        if (savePath == null)
+                        {
+                            savePath = item.FilePath;
+                        }
+                        else
+                        {
+                            var state = (await scriptRepository.DeleteAsync(item.LocalId)) > 0;
+                        }
+                    }
+                    else
+                    {
+                        await DeleteScriptAsync(item);
+                    }
+                }
+                scriptList = mapper.Map<List<ScriptDTO>>(await scriptRepository.GetAllAsync());
+            }
             try
             {
                 foreach (var item in scriptList)
                 {
                     await TryReadFile(item);
+                    if (item.Id == basicsId)
+                    {
+                        item.IsBasics = true;
+                        item.Order = 1;
+                        if (item.IsBuild)
+                        {
+                            item.IsBuild = false;
+                            var fileInfo = new FileInfo(item.FilePath);
+                            if (fileInfo.Exists)
+                            {
+                                var state = await AddScriptAsync(fileInfo, item, item, false, 1, ignoreCache: true);
+                                if (state.state && state.model?.Content != null)
+                                    item.Content = state.model!.Content;
+                            }
+                            else
+                            {
+                                var basicsInfo = await ICloudServiceClient.Instance.Script.Basics(SR.Script_NoFile.Format(item.FilePath));
+                                if (basicsInfo.Code == ApiResponseCode.OK && basicsInfo.Content != null)
+                                {
+                                    var jspath = await DI.Get<IScriptManagerService>().DownloadScript(basicsInfo.Content.UpdateLink);
+                                    if (jspath.state)
+                                    {
+                                        var build = await DI.Get<IScriptManagerService>().AddScriptAsync(jspath.path, item, build: false, order: 1, deleteFile: true, pid: basicsInfo.Content.Id, ignoreCache: true);
+                                        if (build.state && build.model?.Content != null)
+                                            item.Content = build.model!.Content;
+                                    }
+                                }
+                            }
+                        }
+                    }
                     //if (item.Content!= null) { 
 
                     //}
@@ -317,7 +394,7 @@ namespace System.Application.Services.Implementation
                 try
                 {
                     var md5 = Hashs.String.MD5(scriptInfo);
-                    var cachePath = Path.Combine(IOPath.CacheDirectory, TAG, $"{md5}{AppUpdateServiceImpl.FileExDownloadCache}");
+                    var cachePath = Path.Combine(IOPath.CacheDirectory, TAG, md5 + FileEx.DownloadCache);
                     var fileInfo = new FileInfo(cachePath);
                     if (!fileInfo.Directory.Exists)
                     {

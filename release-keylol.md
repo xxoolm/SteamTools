@@ -1,119 +1,146 @@
 # 前言
 
-Steam++项目创建于2018年5月8日，不过并不是耗时两年才做出来，之前一直由于工作原因，并没有多少空闲时间，直到今年中旬辞职了，才开始猛肝。
-本来是想一直做到完全体了，才考虑发布，不过现在感慨一下，果然是没法这么快就整完的，所以还是一版一版更新做到完全体吧。
-Steam++只在keylol论坛与github发布，为了账号安全，请不要到其它不明地方下载。
+Steam++是完全开源的，请不要在非官方渠道下载软件，对于软件报毒情况确实是误报问题。我们也制作了自己的产品[官网](https://www.steampp.net)，大家可以去官网或者开源仓库地址下载。
 
 # Steam++工具箱
 
 
-## 已知的未修复问题
-* 部分用户无法加载游戏列表，原因可能是因为第一次加载游戏列表时未加载完成程序停止运行了，导致生成了错误的缓存文件apps.json，如果遇到此问题可尝试手动删除程序目录下的apps.json然后重启程序。
+## 2.4.12更新内容
 
 
-## 更新内容
+### 新增内容
+1. 新增 Desktop 上网络加速代理设置
+2. 新增 Android 上屏幕捕获设置项，用于允许截图或录制视频
+3. 新增 Windows 托盘菜单支持切换账号与复制令牌
+4. 新增 Linux/macOS 托盘菜单改进与完善
 
-### 1.1.4
-```
-更新内容
-     修复成就图标加载失败
-     优化反代速度
-     修复steam图片反代启动时创意工坊图片显示不了的问题
-     修复uplay更新反代启动时更新失败的问题
-     添加windows系统代理方式(该方式进行代理将不需要修改hosts文件以及不用占用443端口)
-     添加steam更新代理服务以此解决部分用户无法更新Steam的问题
-```
+
+### 修复问题
+1. 修复 Desktop 上用户头像应当为圆形而不是方形
+2. 修复 Android 上切换系统语言可能引发的闪退
+3. 修复 Windows 10 上启动时可能出现的网络连接中断提示
+4. 修复 Android 上令牌倒计时可能引发的闪退
+5. 修复 Desktop 上库存游戏刷新可能引发的闪退
+6. 修复 Desktop 上可能少加载了部分已安装游戏
+7. 修复 Android 上暗色模式下某些区域背景为白色
+8. 改进 Android 上令牌刷新倒计时
+9. 改进 本地令牌名称最大长度限制 32 个字符
+10. 改进 Desktop 上网络加速 UI
+11. 修复 Desktop 上默认头像可能引发的闪退
+12. 改进 Desktop 上左侧菜单图标
+
+
+### 已知问题
+- Desktop 
+	- macOS
+		- 尚未公证，这会影响 macOS Catalina（版本 10.15）以上
+		- 某些窗口顶部会有两个标题栏
+		- 自动更新不可用
+	- Linux
+		- 当使用 root 权限运行时托盘不生效，可通过 Exit.sh 退出程序
+		- 窗口弹出位置不正确
+		- 窗口顶部会有两个标题栏
+		- 自动更新不可用
+	- Shared
+		- 主题切换需重启软件后生效，且跟随系统暂不可用
+- Mobile
+	- Android
+		- 确认交易列表刷新后数据显示不正确
+		- 自动更新暂不可用
+
+------
 
 
 ## 工具介绍
 
-   `Steam++`是一个包含多种Steam工具功能的工具箱，开源发布于[Github](https://github.com/rmbadmin/SteamTools)，如果您对发布的二进制文件不放心，可以自行下载源码编译运行。
-   此工具的大部分功能都是需要您下载安装Steam才能使用。
-   工具预计将整合进大部分常用的Steam相关工具，并且尽力做到比原工具更好用，在各种整合添加功能的同时，也会注意体积尽量的控制到最小。
-
+`Steam++`是一个包含多种Steam工具功能的工具箱，所有功能完全免费，开源发布于Github，如果您对发布的二进制文件不放心，可以自行下载源码编译运行。
+ 此工具的大部分功能都是需要您下载安装Steam才能使用。
+ 工具预计将整合进大部分常用的Steam相关工具，并且尽力做到比原工具更好用。
 软件截图
 [hide]
-[attachimg]1228394[/attachimg]
-[attachimg]1228395[/attachimg]
-[attachimg]1228396[/attachimg]
-[attachimg]1228397[/attachimg]
+[attachimg]1463881[/attachimg]
+[attachimg]1463882[/attachimg]
+[attachimg]1463884[/attachimg]
+[attachimg]1463899[/attachimg]
 [/hide]
 
 ## 核心功能
 
 
-### 1. 反代Steam的社区网页使其能正常访问
+### 1. 通过本地反代理Steam的社区等网页使其能正常访问
 
- 功能类似羽翼城大佬的[steamcommunity_302](https://www.dogfight360.com/blog/686/),使用[Titanium-Web-Proxy](https://github.com/justcoding121/Titanium-Web-Proxy)开源项目进行本地反代，相比302工具具有更快的启动速度，以及支持简单的脚本注入。该功能也可以配合羽翼城大佬的[UsbEAm Hosts Editor](https://www.dogfight360.com/blog/475/)里的网页相关-steamcommunity_302 社区/api/商店加载速度选项的hosts提升加载速度。
-[attachimg]1228388[/attachimg]
+功能使用Titanium-Web-Proxy开源项目进行本地反代，相比SteamCommunity302工具具有更快的启动速度。让用户能够连接上诸如Steam社区（个人资料页）、Discord语音聊天、Twitch直播观看、Origin下载加速、谷歌验证码、Pixiv图片等。  
 
 ### 2. 快速切换当前PC已经记住登陆的Steam账号
 
-该功能是读取Steam路径下存储的本地用户登录记录直接展示操作，可以多账号切换无需重新输入密码和令牌。
-[attachimg]1228389[/attachimg]
+该功能是读取Steam路径下存储的本地用户登录记录直接展示操作，可以多账号切换无需重新输入密码和令牌。如果您的ip地址更换，会导致登陆状态失效。  
 
-### 3. Steam游戏的成就统计管理功能
+### 3. Steam游戏成就管理
 
- 功能参考[SteamAchievementManager](https://github.com/gibbed/SteamAchievementManager)进行二次开发，修复了成就语言有中文却依然是英文成就信息的BUG，修改了游戏列表的加载和操作易用性。
-[attachimg]1228390[/attachimg]
+能够读取任何游戏的成就信息（包括隐藏成就），并且能进行成就修改，包括成就解锁以及成就反解锁，还能够修改成就统计信息
+参考SAM（SteamAchievementManager）进行二次开发，修复了成就语言有中文却依然是英文成就信息的BUG，修改了游戏列表的加载和操作易用性。
+注意：滥用成就管理功能可能会导致开发者封禁！
+[attachimg]1463887[/attachimg]
 
 ### 4. Steam本地两步身份验证器
 
-功能参考[WinAuth](https://github.com/winauth/winauth)开发，可以使您不用启动移动版Steam App也能查看您的令牌，功能类似的软件有[WinAuth](https://github.com/winauth/winauth)、[SteamDesktopAuthenticator](https://github.com/Jessecar96/SteamDesktopAuthenticator)。
-[attachimg]1228391[/attachimg]  
-
+该功能能够将Steam手机令牌储存到您的电脑中，并能够进行与手机端一样的操作。
+不仅能查看手机令牌，还能进行交易报价确认，并且能一键全部确认。
+功能参考WinAuth开发，功能类似的软件有WinAuth、SteamDesktopAuthenticator。
 本地令牌交易市场报价确认
-[attachimg]1262615[/attachimg]
+[attachimg]1463890[/attachimg]
 
-### 5. 一些游戏工具
+### 5. Steam内置浏览器脚本注入
 
-目前已有强制游戏无边框窗口化，CSGO修复VAC屏蔽。
-这一块是随缘做一些我经常用或者闲着没事捣鼓的功能。
-将任何游戏强制无边框窗口化
-[attachimg]1228392[/attachimg]  
-使任何窗口化游戏变成动态桌面壁纸（终于可以用《山》当壁纸了）
-[attachimg]1228393[/attachimg]
+通过反代加速功能将js脚本内置插入了Steam客户端内的浏览器，达到了与油猴类似的效果。目前2.0.0.6版本新增了脚本工坊，可以从我们的服务器上下载到已经兼容的脚本。我们也会不断添加新的脚本，同时也会对旧的脚本进行维护。
+[attachimg]1463883[/attachimg]
 
-------
+### 6.Steam家庭库共享排序
 
+可以排序你的共享库存顺序，避免只能读取A的共享游戏，却想玩B的共享游戏。
 
-## 预计后续添加的功能
+### 7. 更多的游戏工具功能
 
+支持各种老游戏无边框窗口化等等
 
-### Steam自动挂卡
+### 8. 更新计划（画饼时间到）
 
-尝试用社区反代功能结合成就解锁功能来重新实现，目的是实现在软件内不用登录Steam即可直接获取徽章卡片信息并开始挂卡。
+我们预计会在6月份将推出ASF挂卡功能。并且同步推出iOS、安卓端App，用户可以利用手机查看多个账号的令牌，一键确认上架，并且支持手机挂卡。
 
-### Steam皮肤设计器
+#### 并且，以上功能全部免费。
 
-挖坑画大饼，可视化编辑Steam皮肤，而且如果软件能上架Steam的话打算支持创意工坊分享设计的Steam皮肤，短期内肯定做不完。
-
-### 插件形式加载运行ASF
-
-以插件形式支持ASF在工具内运行并增强ASF在Windows Desktop环境下的使用。
-
-### Steam自定义封面管理
-
- 增强Steam自定义封面的管理以及从[SteamGridDB](https://www.steamgriddb.com/)快速匹配下载应用封面。
+Linux 截图:
+[attachimg]1463884[/attachimg]
 
 ------
 
 
 ## 运行环境
 
-> 程序使用C# WPF在 .NET Framework4.7.2环境下开发，如果无法运行请下载安装[.NET Framework 4.7.2](https://dotnet.microsoft.com/download/dotnet-framework/net472)。
+> 程序使用C# 在 .NET 6.0环境下开发，新版采用独立部署编译，不需要运行环境也可以运行)。
+
+RuntimeIdentifier | Available | Edition
+--- | --- | ---
+win-x64 | ✅ | Stable
+osx-x64 | ✅ | β
+linux-x64 | ✅ | α
+android-arm64 | ✅ | α
+android-arm | ✅ | α
+linux-arm64 | ✅ | α
+linux-arm | ✅ | α
+osx-arm64 | ❌ | 
+win-arm64 | ❌ | 
+ios-arm64 | ❌ | 
+
 
 ## 下载
 
-> [Github](https://github.com/rmbadmin/SteamTools/releases)  
-> 分流下载：  
+> [官网](https://steampp.net/)
+> [Github](https://github.com/rmbadmin/SteamTools/releases)
+> [Gitee](https://gitee.com/rmbgame/SteamTools/releases)
+> 分流下载：
 > [hide]
-> [蓝奏云](https://wws.lanzous.com/iFkh4lyooeh)  
-> [百度云](链接: https://pan.baidu.com/s/1mD-C_Ndc332oq_XnFVBLrQ)  
-> 提取码：2uxe
-> [/hide]  
-> EXE 大小：4.83MB  
-> EXE MD5：4149DC37BF24DD10181E32450290FEF6
-> ZIP MD5：202F62682379566DBCD48C65917D4FFF
-> [查毒链接](https://www.virustotal.com/gui/file/8d6da4a3fe7b1738aa5725e9797a86f8b5c668920d1449594279ea7bb262e4ef/detection)
-   虽然没有什么杀毒软件报毒，但是使用过程中可能遇到windows defender误报，您可以选择添加信任。
+> [蓝奏云](https://cliencer.lanzoux.com/b0165duja)
+> 提取码：1234
+> [/hide]
+>    使用过程中可能遇到windows defender误报，您可以选择添加信任。

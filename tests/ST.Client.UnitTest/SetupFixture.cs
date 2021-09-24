@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 using System.Application.Models;
@@ -6,6 +6,8 @@ using System.Application.Services;
 using System.Application.Services.Implementation;
 using System.IO;
 using System.Logging;
+using System.Net;
+using System.Net.Http;
 
 namespace System.Application
 {
@@ -40,7 +42,9 @@ namespace System.Application
         {
             // TODO: Add code here that is run after
             //  all tests in the assembly have been run
+#if !Desktop_UnitTest
             HostsFileTest.DeleteAllTempFileName();
+#endif
         }
 
         const string DevAppVersion = "00000000000000000000000000000001";
@@ -77,8 +81,28 @@ namespace System.Application
             // 业务平台用户管理
             services.TryAddUserManager();
 
+            services.TryAddDesktopHttpPlatformHelper();
+
             // 服务端API调用
-            services.TryAddCloudServiceClient<CloudServiceClient>();
+            services.TryAddCloudServiceClient<CloudServiceClient>(c =>
+            {
+#if NETCOREAPP3_0_OR_GREATER
+                c.DefaultRequestVersion = HttpVersion.Version20;
+#endif
+#if NET5_0_OR_GREATER
+                c.DefaultVersionPolicy = HttpVersionPolicy.RequestVersionExact;
+#endif
+            }, configureHandler:
+#if NETCOREAPP2_1_OR_GREATER
+            () => new SocketsHttpHandler
+            {
+                UseCookies = false,
+                AutomaticDecompression = DecompressionMethods.GZip,
+            }
+#else
+            null
+#endif
+            );
 
             // 通用 Http 服务
             services.AddHttpService();

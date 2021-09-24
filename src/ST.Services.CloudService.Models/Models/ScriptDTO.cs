@@ -1,12 +1,7 @@
-#if MVVM_VM
-using ReactiveUI;
 using System.IO;
 using System.Text.RegularExpressions;
-using System.Linq;
-#endif
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using static System.Application.Services.CloudService.Constants;
 using MPIgnore = MessagePack.IgnoreMemberAttribute;
 using MPKey = MessagePack.KeyAttribute;
 using MPObj = MessagePack.MessagePackObjectAttribute;
@@ -14,6 +9,10 @@ using N_JsonIgnore = Newtonsoft.Json.JsonIgnoreAttribute;
 using N_JsonProperty = Newtonsoft.Json.JsonPropertyAttribute;
 using S_JsonIgnore = System.Text.Json.Serialization.JsonIgnoreAttribute;
 using S_JsonProperty = System.Text.Json.Serialization.JsonPropertyNameAttribute;
+using static System.Application.Services.CloudService.Constants;
+#if MVVM_VM
+using ReactiveUI;
+#endif
 
 namespace System.Application.Models
 {
@@ -38,7 +37,12 @@ namespace System.Application.Models
 
         public ScriptDTO()
         {
-
+            this.WhenAnyValue(x => x.IsUpdate, c => c.IsLoading, v => v.IsExist)
+                .Subscribe(_ =>
+                {
+                    this.RaisePropertyChanged(nameof(DownloadLoading));
+                    this.RaisePropertyChanged(nameof(DownloadButtonLoading));
+                });
         }
 
         public static bool TryParse(string path, [NotNullWhen(true)] out ScriptDTO? proxyScript)
@@ -80,6 +84,12 @@ namespace System.Application.Models
             proxyScript = null;
             return false;
         }
+
+        [MPIgnore]
+        [N_JsonIgnore]
+        [S_JsonIgnore]
+        public bool IsBasics { get; set; } = false;
+
         [MPIgnore]
         [N_JsonIgnore]
         [S_JsonIgnore]
@@ -88,54 +98,96 @@ namespace System.Application.Models
         [MPIgnore]
         [N_JsonIgnore]
         [S_JsonIgnore]
-        public string? FilePath { get; set; } = string.Empty;
+        public string FilePath { get; set; } = string.Empty;
 
         [MPIgnore]
         [N_JsonIgnore]
         [S_JsonIgnore]
-        public string? CachePath { get; set; } = string.Empty;
+        public string CachePath { get; set; } = string.Empty;
 
         [MPIgnore]
         [N_JsonIgnore]
         [S_JsonIgnore]
-        public string? FileName => FilePath ?? Path.GetFileName(FilePath);
+        public string FileName => FilePath ?? Path.GetFileName(FilePath);
 
         [MPIgnore]
         [N_JsonIgnore]
         [S_JsonIgnore]
-        public string? Content { get; set; } = string.Empty;
+        public string Content { get; set; } = string.Empty;
 
         [MPIgnore]
         [N_JsonIgnore]
         [S_JsonIgnore]
         public string? JsPathUrl { get; set; }
+
+        private bool _IsUpdate;
         [MPIgnore]
         [N_JsonIgnore]
         [S_JsonIgnore]
-        public bool IsUpdate { get; set; } = false;
+        public bool IsUpdate
+        {
+            get => _IsUpdate;
+            set => this.RaiseAndSetIfChanged(ref _IsUpdate, value);
+        }
+
+        private bool _IsExist;
         [MPIgnore]
         [N_JsonIgnore]
         [S_JsonIgnore]
-        public bool IsExist { get; set; } = false;
+        public bool IsExist
+        {
+            get => _IsExist;
+            set => this.RaiseAndSetIfChanged(ref _IsExist, value);
+        }
+
+        [MPIgnore]
+        [N_JsonIgnore]
+        [S_JsonIgnore]
+        public bool DownloadLoading => !IsUpdate && IsLoading;
+
+        [MPIgnore]
+        [N_JsonIgnore]
+        [S_JsonIgnore]
+        public bool DownloadButtonLoading => !IsExist && !DownloadLoading;
+
+        private bool _IsLoading;
+        [MPIgnore]
+        [N_JsonIgnore]
+        [S_JsonIgnore]
+        public bool IsLoading
+        {
+            get => _IsLoading;
+            set => this.RaiseAndSetIfChanged(ref _IsLoading, value);
+        }
+
         [MPIgnore]
         [N_JsonIgnore]
         [S_JsonIgnore]
         public string? NewVersion { get; set; }
+
         [MPIgnore]
         [N_JsonIgnore]
         [S_JsonIgnore]
         public DateTimeOffset? UpdateTime { get; set; }
 
 #endif
-
         /// <summary>
         /// 显示名称
         /// </summary>
         [MPKey(0)]
         [N_JsonProperty("0")]
         [S_JsonProperty("0")]
-        [NotNull, DisallowNull] // C# 8 not null
-        public string? Name { get; set; } = string.Empty;
+        public string Name
+#if MVVM_VM
+        {
+            get => _Name;
+            set => this.RaiseAndSetIfChanged(ref _Name, value);
+        }
+        string _Name
+#else
+        { get; set; }
+#endif
+         = string.Empty;
 
         /// <summary>
         /// 脚本作者
@@ -143,8 +195,7 @@ namespace System.Application.Models
         [MPKey(1)]
         [N_JsonProperty("1")]
         [S_JsonProperty("1")]
-        [NotNull, DisallowNull] // C# 8 not null
-        public string? Author { get; set; } = string.Empty;
+        public string Author { get; set; } = string.Empty;
 
         /// <summary>
         /// 版本号
@@ -152,8 +203,17 @@ namespace System.Application.Models
         [MPKey(2)]
         [N_JsonProperty("2")]
         [S_JsonProperty("2")]
-        [NotNull, DisallowNull] // C# 8 not null
-        public string? Version { get; set; } = string.Empty;
+        public string Version
+#if MVVM_VM
+        {
+            get => _Version;
+            set => this.RaiseAndSetIfChanged(ref _Version, value);
+        }
+        string _Version
+#else
+        { get; set; }
+#endif
+        = string.Empty;
 
         /// <summary>
         /// 来源地址
@@ -161,8 +221,7 @@ namespace System.Application.Models
         [MPKey(3)]
         [N_JsonProperty("3")]
         [S_JsonProperty("3")]
-        [NotNull, DisallowNull] // C# 8 not null
-        public string? SourceLink { get; set; } = string.Empty;
+        public string SourceLink { get; set; } = string.Empty;
 
         /// <summary>
         /// 下载地址
@@ -170,8 +229,7 @@ namespace System.Application.Models
         [MPKey(4)]
         [N_JsonProperty("4")]
         [S_JsonProperty("4")]
-        [NotNull, DisallowNull] // C# 8 not null
-        public string? DownloadLink { get; set; } = string.Empty;
+        public string DownloadLink { get; set; } = string.Empty;
 
         /// <summary>
         /// 更新地址
@@ -179,8 +237,17 @@ namespace System.Application.Models
         [MPKey(5)]
         [N_JsonProperty("5")]
         [S_JsonProperty("5")]
-        [NotNull, DisallowNull] // C# 8 not null
-        public string? UpdateLink { get; set; } = string.Empty;
+        public string UpdateLink
+#if MVVM_VM
+        {
+            get => _UpdateLink;
+            set => this.RaiseAndSetIfChanged(ref _UpdateLink, value);
+        }
+        string _UpdateLink
+#else
+        { get; set; }
+#endif
+        = string.Empty;
 
         /// <summary>
         /// 说明
@@ -188,8 +255,7 @@ namespace System.Application.Models
         [MPKey(6)]
         [N_JsonProperty("6")]
         [S_JsonProperty("6")]
-        [NotNull, DisallowNull] // C# 8 not null
-        public string? Description { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
 
         /// <summary>
         /// 脚本匹配域名，分号分割多个
@@ -197,8 +263,7 @@ namespace System.Application.Models
         [MPKey(7)]
         [N_JsonProperty("7")]
         [S_JsonProperty("7")]
-        [NotNull, DisallowNull] // C# 8 not null
-        public string? MatchDomainNames { get; set; } = string.Empty;
+        public string MatchDomainNames { get; set; } = string.Empty;
 
         /// <summary>
         /// 是否默认启用
@@ -216,7 +281,6 @@ namespace System.Application.Models
 #else
         { get; set; }
 #endif
-
         string? mMatchDomainNames;
         string[]? mMatchDomainNamesArray;
         readonly object mMatchDomainNamesArrayLock = new();

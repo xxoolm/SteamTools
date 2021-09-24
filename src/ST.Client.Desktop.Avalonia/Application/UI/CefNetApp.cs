@@ -1,10 +1,13 @@
-﻿using Avalonia.Threading;
+using Avalonia.Threading;
 using CefNet;
+using CefNet.Input;
+using System;
 using System.Application.Models;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Properties;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -51,6 +54,8 @@ namespace System.Application.UI
             //    commandLine.AppendSwitch("no-zygote");
             //    commandLine.AppendSwitch("no-sandbox");
             //}
+
+            //commandLine.AppendSwitch("disable-web-security"); // LoginUsingSteamClient
         }
 
         protected override void OnContextCreated(CefBrowser browser, CefFrame frame, CefV8Context context)
@@ -71,7 +76,16 @@ navigator.__proto__ = newProto;
             ScheduleMessagePumpWorkCallback?.Invoke(delayMs);
         }
 
-        public static CefNetAppInitState InitState { get; private set; }
+        static CefNetAppInitState _InitState;
+        public static CefNetAppInitState InitState
+        {
+            get => _InitState;
+            private set
+            {
+                _InitState = value;
+                AppHelper.IsSystemWebViewAvailable = value == CefNetAppInitState.Complete;
+            }
+        }
 
         static CefNetApp? app;
         static Timer? messagePump;
@@ -83,18 +97,26 @@ navigator.__proto__ = newProto;
         {
             if (InitState != CefNetAppInitState.Uninitialized) return;
 
+            static string GetArch() => RuntimeInformation.ProcessArchitecture switch
+            {
+                Architecture.X86 => "x86",
+                Architecture.X64 => "x64",
+                Architecture.Arm64 => "arm64",
+                _ => throw new PlatformNotSupportedException(),
+            };
+
             var cefPath = DI.Platform switch
             {
-                Platform.Windows => Path.Combine(AppContext.BaseDirectory, "CEF", "win-x86"),
-                Platform.Linux => Path.Combine(AppContext.BaseDirectory, "CEF", "linux-x64"),
-                Platform.Apple => DI.DeviceIdiom == DeviceIdiom.Desktop ? Path.Combine(AppContext.BaseDirectory, "Contents", "Frameworks", "Chromium Embedded Framework.framework") : throw new PlatformNotSupportedException(),
+                Platform.Windows => Path.Combine(AppContext.BaseDirectory, "CEF", "win-" + GetArch()),
+                Platform.Linux => Path.Combine(AppContext.BaseDirectory, "CEF", "linux-" + GetArch()),
+                Platform.Apple => DI.DeviceIdiom == DeviceIdiom.Desktop ? Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "Contents", "Frameworks", "Chromium Embedded Framework.framework")) : throw new PlatformNotSupportedException(),
                 _ => throw new ArgumentOutOfRangeException(nameof(DI.Platform), DI.Platform, null),
             };
 
 #if DEBUG
             if (BuildConfig.IsAigioPC)
             {
-                cefPath = @"G:\CEF\win-x86";
+                cefPath = @"G:\CEF\win-" + GetArch();
             }
 #endif
 
@@ -105,12 +127,16 @@ navigator.__proto__ = newProto;
                 return;
             }
 
-            var localesDirPath = Path.Combine(cefPath, "locales");
-            if (!Directory.Exists(localesDirPath))
+            string? localesDirPath = null;
+            if (!PlatformInfo.IsMacOS)
             {
-                Log.Error(TAG, "Missing Chromium Embedded Framework Binaries(locales), path: {0}", cefPath);
-                InitState = CefNetAppInitState.MissingBinaries;
-                return;
+                localesDirPath = Path.Combine(cefPath, "locales");
+                if (!Directory.Exists(localesDirPath))
+                {
+                    Log.Error(TAG, "Missing Chromium Embedded Framework Binaries(locales), path: {0}", cefPath);
+                    InitState = CefNetAppInitState.MissingBinaries;
+                    return;
+                }
             }
 
             var externalMessagePump = args.Contains("--external-message-pump");
@@ -128,9 +154,8 @@ navigator.__proto__ = newProto;
                 AcceptLanguageList = CultureInfo.CurrentUICulture.GetAcceptLanguage(),
                 MultiThreadedMessageLoop = !externalMessagePump,
                 ExternalMessagePump = externalMessagePump,
+                NoSandbox = true,
                 WindowlessRenderingEnabled = true,
-                LocalesDirPath = localesDirPath,
-                ResourcesDirPath = cefPath,
                 // https://magpcss.org/ceforum/viewtopic.php?t=14648#p32857
                 LogSeverity = ThisAssembly.Debuggable ? CefLogSeverity.Error : CefLogSeverity.Disable,
                 LogFile = logFile,
@@ -138,9 +163,27 @@ navigator.__proto__ = newProto;
                 UncaughtExceptionStackSize = 8,
             };
 
+            if (PlatformInfo.IsMacOS)
+            {
+                var resourcesDirPath = Path.Combine(cefPath, "Resources");
+                if (!Directory.Exists(resourcesDirPath))
+                {
+                    Log.Error(TAG, "Missing Chromium Embedded Framework Resources, path: {0}", resourcesDirPath);
+                    InitState = CefNetAppInitState.MissingBinaries;
+                    return;
+                }
+                settings.ResourcesDirPath = resourcesDirPath;
+                settings.NoSandbox = true;
+            }
+            else
+            {
+                settings.LocalesDirPath = localesDirPath;
+                settings.ResourcesDirPath = cefPath;
+            }
+
             AppHelper.Initialized += () =>
             {
-                if (PlatformInfo.IsMacOS || Environment.GetCommandLineArgs().Contains("--external-message-pump"))
+                if (Instance.UsesExternalMessageLoop)
                 {
                     messagePump = new Timer(_ => Dispatcher.UIThread.Post(CefApi.DoMessageLoopWork), null, messagePumpDelay, messagePumpDelay);
                 }
@@ -165,6 +208,8 @@ navigator.__proto__ = newProto;
                     Log.Error("Shutdown", ex, "app?.Shutdown()");
                 }
             };
+
+            KeycodeConverter.Default = new FixChineseInptKeycodeConverter();
 
             app = new CefNetApp
             {
@@ -205,9 +250,26 @@ navigator.__proto__ = newProto;
             var theme = AppHelper.Current.Theme;
             return theme switch
             {
-                AppTheme.FollowingSystem => "auto",
-                _ => theme.ToString(),
+                AppTheme.FollowingSystem => GetThemeStringByFollowingSystem(),
+                _ => theme.ToString2(),
             };
+            static string GetThemeStringByFollowingSystem()
+            {
+                if (DI.Platform == Platform.Windows)
+                {
+                    var major = Environment.OSVersion.Version.Major;
+                    if (major < 10 || major == 10 && Environment.OSVersion.Version.Build < 18282)
+                    {
+                        goto dark;
+                    }
+                }
+                else if (DI.Platform == Platform.Linux)
+                {
+                    goto dark;
+                }
+                return AppTheme.FollowingSystem.ToString2();
+            dark: return AppTheme.Dark.ToString2();
+            }
         }
     }
 
@@ -227,5 +289,35 @@ navigator.__proto__ = newProto;
         /// 初始化完成
         /// </summary>
         Complete,
+    }
+}
+
+namespace CefNet.Input
+{
+    /// <summary>
+    /// https://github.com/CefNet/CefNet/issues/21
+    /// </summary>
+    public class FixChineseInptKeycodeConverter : KeycodeConverter
+    {
+        public override VirtualKeys CharacterToVirtualKey(char character)
+        {
+            // https://github.com/CefNet/CefNet/blob/master/CefNet/Input/KeycodeConverter.cs#L41
+            // https://github.com/CefNet/CefNet/blob/90.5.21109.1453/CefNet/Input/KeycodeConverter.cs#L41
+            try
+            {
+                return base.CharacterToVirtualKey(character);
+            }
+            catch (Exception e)
+            {
+                if (PlatformInfo.IsWindows)
+                {
+                    if (e.Message == "Incompatible input locale.")
+                    {
+                        return VirtualKeys.None;
+                    }
+                }
+                throw;
+            }
+        }
     }
 }

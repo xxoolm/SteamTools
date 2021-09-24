@@ -1,4 +1,4 @@
-﻿using Microsoft.Win32;
+using Microsoft.Win32;
 using System.Application.Models;
 using System.Application.UI;
 using System.Management;
@@ -17,7 +17,7 @@ namespace System.Application.Services.Implementation
             {
                 // 设置 - 个性化 - 颜色 - 选择你的默认 Windows 模式 SystemUsesLightTheme
                 // 设置 - 个性化 - 颜色 - 选择默认应用模式 AppsUseLightTheme
-                if (Environment.OSVersion.Version.Major >= 10)
+                if (OperatingSystem2.IsWindows10AtLeast)
                 {
                     try
                     {
@@ -42,9 +42,8 @@ namespace System.Application.Services.Implementation
 
         public void SetLightOrDarkThemeFollowingSystem(bool enable)
         {
-            if (Environment.OSVersion.Version.Major < 10) return;
-            if (Environment.OSVersion.Version.Major == 10 &&
-                Environment.OSVersion.Version.Build < 18282) return;
+            var major = Environment.OSVersion.Version.Major;
+            if (major < 10 || (major == 10 && Environment.OSVersion.Version.Build < 18282)) return;
 
             var currentUser = WindowsIdentity.GetCurrent()?.User;
             if (currentUser == null) return;
@@ -70,7 +69,7 @@ namespace System.Application.Services.Implementation
                             if (value.HasValue)
                             {
                                 var theme_value = value.Value ? AppTheme.Light : AppTheme.Dark;
-                                MainThreadDesktop.BeginInvokeOnMainThread(() =>
+                                MainThread2.BeginInvokeOnMainThread(() =>
                                 {
                                     AppHelper.Current.SetThemeNotChangeValue(theme_value);
                                 });

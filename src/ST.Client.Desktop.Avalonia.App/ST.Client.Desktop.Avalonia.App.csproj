@@ -2,24 +2,26 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net5.0</TargetFramework>
+    <!--<DefineConstants>StartupTrace;$(DefineConstants)</DefineConstants>-->
+    <TargetFramework>net6.0</TargetFramework>
     <SignAssembly>false</SignAssembly>
     <!--(SignAssembly)对此程序集进行签名会导致编译失败(CompileAvaloniaXamlTask)-->
     <RootNamespace>System.Application.UI</RootNamespace>
     <AssemblyName>Steam++</AssemblyName>
-    <ApplicationManifest>Properties\app.manifest</ApplicationManifest>
   </PropertyGroup>
 
-  <!--<PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+  <PropertyGroup Condition="'$(Configuration)'=='Release'">
     <AllowedReferenceRelatedFileExtensions>
-      -->
-  <!-- Prevent default XML and PDB files copied to output in RELEASE.
+      <!-- Prevent default XML and PDB files copied to output in RELEASE. 
            Only *.allowedextension files will be included, which doesn't exist in my case.
        -->
-  <!--
       .allowedextension
     </AllowedReferenceRelatedFileExtensions>
-  </PropertyGroup>-->
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" $(DefineConstants.Contains(`StartupTrace`)) ">
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
 
   <PropertyGroup Condition=" $(RuntimeIdentifier.Contains(`win`)) Or ('$(OS)' == 'Windows_NT' And !$(DefineConstants.Contains(`PUBLISH`))) ">
     <DefineConstants>WINDOWS;$(DefineConstants)</DefineConstants>
@@ -27,16 +29,23 @@
     <ApplicationManifest>Properties\app.manifest</ApplicationManifest>
     <!--<TargetFramework>net5.0-windows10.0.19041.0</TargetFramework>
     <SupportedOSPlatformVersion>7.0</SupportedOSPlatformVersion>-->
-    <Platforms>AnyCPU;x86</Platforms>
-    <PlatformTarget>x86</PlatformTarget>
     <!-- 注意：RuntimeIdentifier win-x86 会导致亚克力效果会丢失 -->
-    <RuntimeIdentifier>win7-x86</RuntimeIdentifier>
+    <RuntimeIdentifier>win7-x64</RuntimeIdentifier>
     <!--<UseWindowsForms>false</UseWindowsForms>-->
     <!--<UseWPF>false</UseWPF>-->
   </PropertyGroup>
 
   <PropertyGroup Condition=" $(RuntimeIdentifier.Contains(`osx`)) Or ('$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::OSX)))' == 'true' And !$(DefineConstants.Contains(`PUBLISH`))) ">
     <DefineConstants>MAC;$(DefineConstants)</DefineConstants>
+    <!--<TargetFramework>net6.0-macos</TargetFramework>-->
+    <!--<TargetFramework>net6.0</TargetFramework>-->
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" $(RuntimeIdentifier.Contains(`linux`)) Or ('$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux)))' == 'true' And !$(DefineConstants.Contains(`PUBLISH`))) ">
+    <DefineConstants>LINUX;$(DefineConstants)</DefineConstants>
+    <!--<TargetFramework>net6.0</TargetFramework>-->
+    <OutputType>Exe</OutputType>
   </PropertyGroup>
 
   <PropertyGroup Condition=" $(DefineConstants.Contains(`PUBLISH`)) ">
@@ -58,15 +67,14 @@
     <DebugSymbols>false</DebugSymbols>
   </PropertyGroup>
 
-  <!--<ItemGroup>
-      <TrimmerRootAssembly Include="CefNet" />
-      <TrimmerRootAssembly Include="CefNet.Avalonia" />
-    </ItemGroup>-->
-
   <ItemGroup>
     <Compile Include="..\Startup2.cs" />
+    <Compile Include="..\Startup2.HandleGlobalException.cs" />
     <Compile Include="..\Common.CoreLib\Properties\AssemblyInfo.cs">
       <Link>Properties\AssemblyInfo.cs</Link>
+    </Compile>
+    <Compile Include="..\Common.CoreLib\Properties\AssemblyInfo.Version.cs">
+      <Link>Properties\AssemblyInfo.Version.cs</Link>
     </Compile>
   </ItemGroup>
 
@@ -76,12 +84,19 @@
     <ProjectReference Include="..\Common.CoreLib\Common.CoreLib.csproj" />
   </ItemGroup>
 
+  <!--<ItemGroup Condition=" !$(DefineConstants.Contains(`PUBLISH`)) ">
+    <ProjectReference Include="..\ST.Client.Desktop.Console.App\ST.Client.Desktop.Console.App.csproj"/>
+  </ItemGroup>-->
+
   <ItemGroup Condition=" $(RuntimeIdentifier.Contains(`win`)) Or ('$(OS)' == 'Windows_NT' And !$(DefineConstants.Contains(`PUBLISH`))) ">
     <ProjectReference Include="..\ST.Client.Desktop.Windows\ST.Client.Desktop.Windows.csproj" />
+    <None Include="..\..\references\7z.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
   <!--<ItemGroup Condition=" $(RuntimeIdentifier.Contains(`win`)) And $(DefineConstants.Contains(`PUBLISH`)) ">
-    <PackageReference Include="System.Reactive" Version="5.0.0.1-exclude-winforms" />
+    <PackageReference Include="System.Reactive" Version="5.0.0.1-exclude-winforms"/>
   </ItemGroup>-->
 
   <ItemGroup Condition=" $(RuntimeIdentifier.Contains(`osx`)) Or ('$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::OSX)))' == 'true' And !$(DefineConstants.Contains(`PUBLISH`))) ">
@@ -119,35 +134,32 @@
   <ItemGroup Condition=" $(RuntimeIdentifier.Contains(`win`)) Or ('$(OS)' == 'Windows_NT' And !$(DefineConstants.Contains(`PUBLISH`))) ">
     <!--Win8.1/10的开始菜单磁贴配置-->
     <None Include="..\..\Resources\AppIcon\visualelementsmanifest.xml">
-      <Link>steam++.visualelementsmanifest.xml</Link>
+      <Link>Steam++.VisualElementsManifest.xml</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="..\..\Resources\AppIcon\VisualElements_150.png">
-      <Link>Assets\VisualElements_150.png</Link>
+    <None Include="..\ST.Client.Desktop.Avalonia.App.Bridge.Package\Images\Square44x44Logo.scale-400.png">
+      <Link>Assets\SteamPlusPlus.70x70.png</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="..\..\Resources\AppIcon\VisualElements_70.png">
-      <Link>Assets\VisualElements_70.png</Link>
+    <None Include="..\ST.Client.Desktop.Avalonia.App.Bridge.Package\Images\Square150x150Logo.scale-400.png">
+      <Link>Assets\SteamPlusPlus.150x150.png</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
 
+  <!--AppSettings namespacePrefix = "System.Application.UI.Resources."-->
   <ItemGroup Condition="Exists('$(MSBuildProjectDirectory)\..\..\aes-key.pfx')">
     <EmbeddedResource Include="..\..\aes-key.pfx" Link="Resources\3A613E8D" />
   </ItemGroup>
-
   <ItemGroup Condition="'$(Configuration)'=='Debug' And Exists('$(MSBuildProjectDirectory)\..\..\app-id-debug.pfx')">
     <EmbeddedResource Include="..\..\app-id-debug.pfx" Link="Resources\0093BF84" />
   </ItemGroup>
-
   <ItemGroup Condition="'$(Configuration)'=='Debug' And Exists('$(MSBuildProjectDirectory)\..\..\rsa-public-key-debug.pfx')">
     <EmbeddedResource Include="..\..\rsa-public-key-debug.pfx" Link="Resources\6D72ED26" />
   </ItemGroup>
-
   <ItemGroup Condition="'$(Configuration)'=='Release' And Exists('$(MSBuildProjectDirectory)\..\..\app-id-release.pfx')">
     <EmbeddedResource Include="..\..\app-id-release.pfx" Link="Resources\F1D827AB" />
   </ItemGroup>
-
   <ItemGroup Condition="'$(Configuration)'=='Release' And Exists('$(MSBuildProjectDirectory)\..\..\rsa-public-key-release.pfx')">
     <EmbeddedResource Include="..\..\rsa-public-key-release.pfx" Link="Resources\E88CA4F9" />
   </ItemGroup>

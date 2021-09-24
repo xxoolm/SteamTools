@@ -1,6 +1,4 @@
 using System.Application.Properties;
-using System.Diagnostics;
-using Xamarin.Essentials;
 
 namespace System.Application.Services.CloudService
 {
@@ -18,6 +16,7 @@ namespace System.Application.Services.CloudService
             {
                 public const string AppVersion = "App-Version";
                 public const string SecurityKey = "App-SKey";
+                public const string SecurityKeyPadding = "App-SKey-Padding";
             }
 
             public static class Response
@@ -35,10 +34,6 @@ namespace System.Application.Services.CloudService
         /// 实际短信间隔
         /// </summary>
         public const double SMSIntervalActually = 79.5;
-
-        public const string Prefix_HTTPS = "https://";
-
-        public const string Prefix_HTTP = "http://";
 
         public static string IsNotOfficialChannelPackageWarning => SR.IsNotOfficialChannelPackageWarning;
 
@@ -64,31 +59,6 @@ namespace System.Application.Services.CloudService
                 }
             }
             return cacheValuesArray;
-        }
-
-        /// <summary>
-        /// 兼容 Linux/Mac/.NetCore/Android/iOS 的打开链接方法
-        /// </summary>
-        /// <param name="url"></param>
-        public static async void BrowserOpen(string? url)
-        {
-            if (url == null) return;
-            if (url.StartsWith(Prefix_HTTPS, StringComparison.OrdinalIgnoreCase) ||
-                url.StartsWith(Prefix_HTTP, StringComparison.OrdinalIgnoreCase))
-            {
-                if (DI.DeviceIdiom == DeviceIdiom.Desktop && DI.Platform != Platform.UWP)
-                {
-                    Process.Start(new ProcessStartInfo
-                    {
-                        FileName = url,
-                        UseShellExecute = true,
-                    });
-                }
-                else
-                {
-                    await Browser.OpenAsync(url);
-                }
-            }
         }
     }
 }

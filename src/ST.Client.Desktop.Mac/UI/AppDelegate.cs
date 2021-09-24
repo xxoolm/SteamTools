@@ -1,4 +1,4 @@
-﻿#if MONO_MAC
+#if MONO_MAC
 using MonoMac.AppKit;
 using MonoMac.Foundation;
 #elif XAMARIN_MAC
@@ -16,19 +16,10 @@ namespace System.Application.UI
     /// This requires us to use Xamarin.Mac to make it work with .net standard
     /// </summary>
     [Register("AppDelegate")]
-    public sealed class AppDelegate : NSApplicationDelegate
+    public class AppDelegate : NSApplicationDelegate
     {
-        static bool isInitialized;
-
-        public static void Init()
+        public AppDelegate()
         {
-            if (!isInitialized)
-            {
-                isInitialized = true;
-                NSApplication.Init();
-                var appDelegate = DI.Get<AppDelegate>();
-                NSApplication.SharedApplication.Delegate = appDelegate;
-            }
         }
 
         /// <summary>
@@ -60,11 +51,26 @@ namespace System.Application.UI
         /// <param name="notification"></param>
         public override void DidFinishLaunching(NSNotification notification)
         {
-#if !NETSTANDARD
+#if !NETSTANDARD && !NET5_0 && !NET6_0
             VisualStudioAppCenterSDK.Init();
 #endif
 
             NSRunningApplication.CurrentApplication.Activate(NSApplicationActivationOptions.ActivateIgnoringOtherWindows);
+        }
+
+        static bool isInitialized;
+        internal static AppDelegate? Instance { get; private set; }
+
+        public static void Init(/*string[] args*/)
+        {
+            if (!isInitialized)
+            {
+                isInitialized = true;
+                NSApplication.Init();
+                //NSApplication.Main(args);
+                Instance = new();
+                NSApplication.SharedApplication.Delegate = Instance;
+            }
         }
     }
 }

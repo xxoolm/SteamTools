@@ -1,14 +1,18 @@
-﻿#if !NOT_MP
+#if !NOT_MP
 using MessagePack;
 #endif
 #if !NOT_NJSON
 using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+using Newtonsoft.Json.Serialization;
+using System;
 #endif
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Text;
 using System.Text.Encodings.Web;
+using System.Text.Json;
 using System.Threading;
 #if !NOT_NJSON
 using static Newtonsoft.Json.JsonConvert;
@@ -76,8 +80,7 @@ namespace System
 #if NOT_NJSON
             return JsonImplType.SystemTextJson;
 #else
-            if (DI.Platform == Platform.Android ||
-                (DI.Platform == Platform.Apple && DI.DeviceIdiom != DeviceIdiom.Desktop))
+            if (Environment.Version.Major <= 5)
             {
                 return JsonImplType.NewtonsoftJson;
             }
@@ -146,6 +149,10 @@ namespace System
         /// <returns></returns>
         public static byte[] SMP<T>(T value, CancellationToken cancellationToken = default)
             => MessagePackSerializer.Serialize(value, options: lz4Options, cancellationToken: cancellationToken);
+
+        /// <inheritdoc cref="SMP{T}(T, CancellationToken)"/>
+        public static byte[] SMP(Type type, object value, CancellationToken cancellationToken = default)
+            => MessagePackSerializer.Serialize(type, value, options: lz4Options, cancellationToken: cancellationToken);
 
         /// <summary>
         /// (Serialize)MessagePack 序列化 + Base64Url Encode
@@ -262,6 +269,44 @@ namespace System
         #endregion
 
         /// <summary>
+        /// 将 Json 字符串格式化缩减后输出
+        /// </summary>
+        /// <param name="jsonStr"></param>
+        /// <param name="implType"></param>
+        /// <returns></returns>
+        [return: NotNullIfNotNull("jsonStr")]
+        public static string? GetIndented(string? jsonStr, JsonImplType implType = JsonImplType.SystemTextJson)
+        {
+            if (!string.IsNullOrWhiteSpace(jsonStr))
+            {
+                try
+                {
+                    switch (implType)
+                    {
+                        case JsonImplType.SystemTextJson:
+                            var jsonDoc = JsonDocument.Parse(jsonStr);
+                            return SJsonSerializer.Serialize(jsonDoc, jsonDoc.GetType(), new SJsonSerializerOptions()
+                            {
+                                WriteIndented = true,
+                            });
+                        default:
+#if NOT_NJSON
+                            throw new NotSupportedException();
+#else
+                            var jsonObj = Newtonsoft.Json.Linq.JObject.Parse(jsonStr);
+                            return SerializeObject(jsonObj, Formatting.Indented);
+#endif
+                    }
+                }
+                catch
+                {
+
+                }
+            }
+            return jsonStr;
+        }
+
+        /// <summary>
         /// 使用 MessagePack 序列化将对象克隆一份新的对象
         /// </summary>
         /// <typeparam name="T"></typeparam>
@@ -279,6 +324,39 @@ namespace System
             return MessagePackSerializer.Deserialize<T>(bytes);
 #endif
         }
+
+#if !NOT_NJSON
+        static readonly Lazy<JsonSerializerSettings> mIgnoreJsonPropertyContractResolverWithStringEnumConverterSettings = new(GetIgnoreJsonPropertyContractResolverWithStringEnumConverterSettings);
+
+        static JsonSerializerSettings GetIgnoreJsonPropertyContractResolverWithStringEnumConverterSettings() => new()
+        {
+            ContractResolver = new IgnoreJsonPropertyContractResolver(),
+            Converters = new List<JsonConverter>
+            {
+                new StringEnumConverter(),
+            },
+        };
+
+        public static JsonSerializerSettings IgnoreJsonPropertyContractResolverWithStringEnumConverterSettings => mIgnoreJsonPropertyContractResolverWithStringEnumConverterSettings.Value;
+
+        /// <summary>
+        /// 序列化 JSON 模型，使用原键名
+        /// </summary>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        public static string SJSON_Original(object? value)
+            => SerializeObject(value, Formatting.Indented, Serializable.IgnoreJsonPropertyContractResolverWithStringEnumConverterSettings);
+
+        /// <summary>
+        /// 反序列化 JSON 模型，使用原键名
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        [return: MaybeNull]
+        public static T DJSON_Original<T>(string value)
+            => DeserializeObject<T>(value, Serializable.IgnoreJsonPropertyContractResolverWithStringEnumConverterSettings);
+#endif
     }
 
     public interface ICloneableSerializable
@@ -329,3 +407,34 @@ namespace System
         }
     }
 }
+
+#if !NOT_NJSON
+namespace Newtonsoft.Json.Serialization
+{
+    /// <summary>
+    /// 将忽略 <see cref="JsonPropertyAttribute"/> 属性
+    /// </summary>
+    public sealed class IgnoreJsonPropertyContractResolver : DefaultContractResolver
+    {
+        readonly bool useCamelCase;
+
+        public IgnoreJsonPropertyContractResolver(bool useCamelCase = false)
+        {
+            this.useCamelCase = useCamelCase;
+        }
+
+        protected override IList<JsonProperty> CreateProperties(Type type, MemberSerialization memberSerialization)
+        {
+            var result = base.CreateProperties(type, memberSerialization);
+            foreach (var item in result)
+            {
+                item.PropertyName = item.UnderlyingName == null ? null :
+                    (useCamelCase ?
+                        JsonNamingPolicy.CamelCase.ConvertName(item.UnderlyingName) :
+                        item.UnderlyingName);
+            }
+            return result;
+        }
+    }
+}
+#endif

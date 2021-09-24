@@ -1,6 +1,9 @@
-﻿using System.Application.UI.ViewModels;
+using System.Application.UI.ViewModels;
 using System.Threading.Tasks;
 using System.Windows;
+#if __MOBILE__
+using WindowViewModel = System.Application.UI.ViewModels.PageViewModel;
+#endif
 
 namespace System.Application.Services
 {
@@ -26,7 +29,8 @@ namespace System.Application.Services
             TWindowViewModel? viewModel = null,
             string title = "",
             ResizeModeCompat resizeMode = ResizeModeCompat.NoResize,
-            bool isDialog = false)
+            bool isDialog = false,
+            bool isParent = true)
             where TWindowViewModel : WindowViewModel, new();
 
         /// <inheritdoc cref="Show{TWindowViewModel}(CustomWindow, TWindowViewModel?, string, ResizeModeCompat, bool)"/>
@@ -35,7 +39,8 @@ namespace System.Application.Services
             WindowViewModel? viewModel = null,
             string title = "",
             ResizeModeCompat resizeMode = ResizeModeCompat.NoResize,
-            bool isDialog = false);
+            bool isDialog = false,
+            bool isParent = true);
 
         /// <summary>
         /// 显示一个弹窗，返回 <see langword="true"/> 确定(仅当ViewModel继承自<see cref="DialogWindowViewModel"/>时生效)，<see langword="false"/> 取消
@@ -52,7 +57,8 @@ namespace System.Application.Services
             TWindowViewModel? viewModel = null,
             string title = "",
             ResizeModeCompat resizeMode = ResizeModeCompat.NoResize,
-            bool isDialog = true)
+            bool isDialog = true,
+            bool isParent = true)
             where TWindowViewModel : WindowViewModel, new();
 
 
@@ -63,5 +69,15 @@ namespace System.Application.Services
             string title = "",
             ResizeModeCompat resizeMode = ResizeModeCompat.NoResize,
             bool isDialog = true);
+
+
+#if !__MOBILE__
+        void CloseWindow(WindowViewModel vm);
+        bool IsVisibleWindow(WindowViewModel vm);
+        void HideWindow(WindowViewModel vm);
+        void ShowWindow(WindowViewModel vm);
+#else
+        void Pop();
+#endif
     }
 }

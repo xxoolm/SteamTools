@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
@@ -8,12 +8,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="Services\Implementation\HttpProxyServiceImpl.cs~RF49d5c0a.TMP" />
-  </ItemGroup>
-
-  <ItemGroup>
     <Compile Include="..\Common.CoreLib\Properties\AssemblyInfo.cs">
       <Link>Properties\AssemblyInfo.cs</Link>
+    </Compile>
+    <Compile Include="..\Common.CoreLib\Properties\AssemblyInfo.Version.cs">
+      <Link>Properties\AssemblyInfo.Version.cs</Link>
     </Compile>
     <Compile Include="..\ST\Properties\InternalsVisibleTo.cs">
       <Link>Properties\InternalsVisibleTo.cs</Link>
@@ -24,10 +23,12 @@
   </ItemGroup>
 
   <ItemGroup>
-      <PackageReference Include="ReactiveUI" Version="13.2.18" />
+    <PackageReference Include="SkiaSharp" />
+    <PackageReference Include="Net.Codecrete.QrCodeGenerator" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\references\ArchiSteamFarm\ArchiSteamFarm.Library\ArchiSteamFarm.Library.csproj" />
     <ProjectReference Include="..\..\references\Titanium-Web-Proxy\src\Titanium.Web.Proxy\Titanium.Web.Proxy.csproj" />
     <ProjectReference Include="..\Repositories.sqlite-net-pcl\Repositories.sqlite-net-pcl.csproj" />
     <ProjectReference Include="..\ST.Services.CloudService\ST.Services.CloudService.csproj" />
@@ -49,5 +50,4 @@
       <LastGenOutput>SR.Designer.cs</LastGenOutput>
     </EmbeddedResource>
   </ItemGroup>
-
 </Project>

@@ -1,4 +1,4 @@
-#if !__MOBILE__
+#if !__MOBILE__ && !CONSOLEAPP
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Platform;
@@ -18,23 +18,36 @@ using System.Application.Services.Implementation;
 using System.Application.UI;
 using System.Collections.Generic;
 using System.Reflection;
-using System.Net;
 using System.Application.Services.CloudService.Clients.Abstractions;
 using System.Linq;
-using CSConst = System.Application.Services.CloudService.Constants;
+using static System.Application.Browser2;
 using System.Properties;
-using System.Diagnostics;
 using System.IO;
 using static System.Application.AppClientAttribute;
+using System.Net;
+using System.Diagnostics;
+using System.Net.Http;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using System.Application.Models.Settings;
 #if __ANDROID__
+using Xamarin.Android.Net;
 using Program = System.Application.UI.MainApplication;
+using PlatformApplication = System.Application.UI.MainApplication;
+using System.Application.UI.Resx;
+using System.Windows;
 #elif __IOS__
 using Program = System.Application.UI.AppDelegate;
+#elif !__MOBILE__
+using PlatformApplication = System.Application.UI.App;
 #endif
+#if StartupTrace
+using System.Diagnostics;
+#endif
+using _ThisAssembly = System.Properties.ThisAssembly;
 
 namespace System.Application
 {
-    internal static class Startup
+    static partial class Startup
     {
         static bool isInitialized;
 
@@ -46,14 +59,20 @@ namespace System.Application
             if (!isInitialized)
             {
                 isInitialized = true;
-#if !__MOBILE__
-                FileSystemDesktop.InitFileSystem();
+#if StartupTrace
+                StartupTrace.Restart("Startup.InitFileSystem");
 #endif
                 if (level.HasFlag(DILevel.ServerApiClient))
                 {
                     ModelValidatorProvider.Init();
+#if StartupTrace
+                    StartupTrace.Restart("ModelValidatorProvider.Init");
+#endif
                 }
                 InitDI(level);
+#if StartupTrace
+                StartupTrace.Restart($"InitDI: {level}");
+#endif
                 static void InitDI(DILevel level)
                 {
 #if UI_DEMO
@@ -63,7 +82,13 @@ namespace System.Application
                     static void ConfigureServices(IServiceCollection services, DILevel level)
                     {
                         ConfigureRequiredServices(services);
+#if StartupTrace
+                        StartupTrace.Restart("DI.ConfigureRequiredServices");
+#endif
                         ConfigureDemandServices(services, level);
+#if StartupTrace
+                        StartupTrace.Restart("DI.ConfigureDemandServices");
+#endif
                     }
 #endif
                 }
@@ -77,17 +102,20 @@ namespace System.Application
         static void ConfigureRequiredServices(IServiceCollection services)
         {
             // 添加日志实现
-#if __ANDROID__
-            services.AddClientLogging();
-#elif __IOS__
-            services.AddLogging(cfg => cfg.AddProvider(NullLoggerProvider.Instance));
-#else
-            services.AddDesktopLogging();
-#endif
+            services.AddGeneralLogging();
 #if __MOBILE__
             // 添加运行时权限
             services.TryAddPermissions();
             services.AddPlatformPermissions();
+#endif
+#if !CONSOLEAPP
+            // 添加 app 配置项
+            services.TryAddOptions(AppSettings);
+            // 键值对存储
+            services.TryAddStorage();
+
+            // 添加安全服务
+            services.AddSecurityService<EmbeddedAesDataProtectionProvider, LocalDataProtectionProvider>();
 #endif
         }
 
@@ -99,32 +127,54 @@ namespace System.Application
         {
             var hasMainProcessRequired = level.HasFlag(DILevel.MainProcessRequired);
 #if !__MOBILE__
+#if !CONSOLEAPP
             HasNotifyIcon = hasMainProcessRequired;
-#if !UI_DEMO
-            // 桌面平台服务 此项放在其他通用业务实现服务之前
-            services.AddDesktopPlatformService();
 #endif
 #endif
+#if !CONSOLEAPP
             var hasGUI = level.HasFlag(DILevel.GUI);
             var hasServerApiClient = level.HasFlag(DILevel.ServerApiClient);
+#endif
             var hasHttpClientFactory = level.HasFlag(DILevel.HttpClientFactory);
+#if !CONSOLEAPP
             var hasHttpProxy = level.HasFlag(DILevel.HttpProxy);
+#endif
             var hasHosts = level.HasFlag(DILevel.Hosts);
             var hasSteam = level.HasFlag(DILevel.Steam);
-
+#if !UI_DEMO && !__MOBILE__
+            // 桌面平台服务 此项放在其他通用业务实现服务之前
+            services.AddDesktopPlatformService(hasSteam, hasGUI, HasNotifyIcon);
+#endif
+#if __MOBILE__
+            services.AddMobilePlatformService(hasGUI);
+#endif
+#if StartupTrace
+            StartupTrace.Restart("DI.ConfigureDemandServices.Calc");
+#endif
+#if !CONSOLEAPP
             if (hasGUI)
             {
+#if __MOBILE__
+                services.TryAddFontManager();
+#else
+                services.TryAddAvaloniaFontManager(useGdiPlusFirst: true);
+#endif
                 // 添加 Toast 提示服务
 #if !DEBUG
                 services.AddStartupToastIntercept();
 #endif
                 services.TryAddToast();
+
+                services.AddSingleton<IAppService>(_ => PlatformApplication.Instance);
 #if __MOBILE__
                 // 添加电话服务
                 services.AddTelephonyService();
+
+                services.AddMSALPublicClientApp(AppSettings.MASLClientId);
 #else
-                services.AddSingleton<IDesktopAppService>(s => App.Instance);
-                services.AddSingleton<IDesktopAvaloniaAppService>(s => App.Instance);
+                services.AddSingleton<IDesktopAppService>(_ => PlatformApplication.Instance);
+                services.AddSingleton<IDesktopAvaloniaAppService>(_ => PlatformApplication.Instance);
+                services.TryAddSingleton<IClipboardPlatformService>(s => s.GetRequiredService<IDesktopAppService>());
 
                 // 添加管理主窗口服务
                 services.AddWindowService();
@@ -132,6 +182,8 @@ namespace System.Application
                 // 添加主线程助手(MainThreadDesktop)
                 services.AddMainThreadPlatformService();
 
+                services.TryAddFilePickerPlatformService();
+#endif
                 #region MessageBox
 
                 /* System.Windows.MessageBox 在 WPF 库中，仅支持 Win 平台
@@ -159,17 +211,28 @@ namespace System.Application
 #endif
 
                 #endregion
+
+                services.TryAddBiometricService();
+#if StartupTrace
+                StartupTrace.Restart("DI.ConfigureDemandServices.GUI");
 #endif
             }
-
-            if (hasHttpClientFactory || hasServerApiClient)
+#endif
+            if (hasHttpClientFactory
+#if !CONSOLEAPP
+                || hasServerApiClient
+#endif
+                )
             {
 #if __MOBILE__
                 // 添加 Http 平台助手移动端实现
                 services.AddPlatformHttpPlatformHelper();
 #else
                 // 添加 Http 平台助手桌面端实现
-                services.AddDesktopHttpPlatformHelper();
+                services.TryAddDesktopHttpPlatformHelper();
+#endif
+#if StartupTrace
+                StartupTrace.Restart("DI.ConfigureDemandServices.HttpPlatformHelper");
 #endif
             }
 
@@ -181,45 +244,81 @@ namespace System.Application
 #endif
                 // 通用 Http 服务
                 services.AddHttpService();
+#if StartupTrace
+                StartupTrace.Restart("DI.ConfigureDemandServices.HttpClientFactory");
+#endif
             }
-
 #if !__MOBILE__
             services.TryAddScriptManager();
 #endif
+#if StartupTrace
+            StartupTrace.Restart("DI.ConfigureDemandServices.ScriptManager");
+#endif
+
+#if !CONSOLEAPP && !__MOBILE__
             if (hasHttpProxy)
             {
                 // 通用 Http 代理服务
                 services.AddHttpProxyService();
+#if StartupTrace
+                StartupTrace.Restart("DI.ConfigureDemandServices.HttpProxy");
+#endif
             }
-
+#endif
+#if !CONSOLEAPP
             if (hasServerApiClient)
             {
-                // 添加 app 配置项
-                services.TryAddOptions(AppSettings);
-#if !__MOBILE__
-                // 添加安全服务
-                services.AddSecurityService<EmbeddedAesDataProtectionProvider, LocalDataProtectionProvider>();
+#if StartupTrace
+                StartupTrace.Restart("DI.ConfigureDemandServices.AppSettings");
 #endif
                 // 添加模型验证框架
                 services.TryAddModelValidator();
 
                 // 添加服务端API调用
-                services.TryAddCloudServiceClient<CloudServiceClient>();
+                services.TryAddCloudServiceClient<CloudServiceClient>(c =>
+                {
+#if NETCOREAPP3_0_OR_GREATER
+                    c.DefaultRequestVersion = HttpVersion.Version20;
+#endif
+#if NET5_0_OR_GREATER
+                    c.DefaultVersionPolicy = HttpVersionPolicy.RequestVersionExact;
+#endif
+                }, configureHandler:
+#if NETCOREAPP2_1_OR_GREATER
+                () => new SocketsHttpHandler
+                {
+                    UseCookies = false,
+                    AutomaticDecompression = DecompressionMethods.GZip,
+                }
+#elif __ANDROID__
+                () => new AndroidClientHandler
+                {
+                    UseCookies = false,
+                    AutomaticDecompression = DecompressionMethods.GZip,
+                }
+#else
+            null
+#endif
+            );
 
                 services.AddAutoMapper();
 
                 // 添加仓储服务
                 services.AddRepositories();
 
-                // 键值对存储
-                services.TryAddStorage();
-
                 // 业务平台用户管理
                 services.TryAddUserManager();
+#if StartupTrace
+                StartupTrace.Restart("DI.ConfigureDemandServices.ServerApiClient");
+#endif
             }
-
+#endif
+#if !CONSOLEAPP
             // 添加通知服务
             AddNotificationService();
+#if StartupTrace
+            StartupTrace.Restart("DI.ConfigureDemandServices.AddNotificationService");
+#endif
             void AddNotificationService()
             {
 #if !__MOBILE__
@@ -227,20 +326,18 @@ namespace System.Application
 #endif
                 services.AddNotificationService();
             }
-
+#endif
 #if !__MOBILE__
-            if (hasGUI || hasServerApiClient)
-            {
-                // 业务用户配置文件服务()
-                //services.AddConfigFileService();
-            }
-
+#if !CONSOLEAPP
             if (hasHosts)
             {
                 // hosts 文件助手服务
                 services.AddHostsFileService();
+#if StartupTrace
+                StartupTrace.Restart("DI.ConfigureDemandServices.HostsFileService");
+#endif
             }
-
+#endif
             if (hasSteam)
             {
                 // Steam 相关助手、工具类服务
@@ -254,21 +351,21 @@ namespace System.Application
 
                 // Steamworks WebApi Service
                 services.AddSteamworksWebApiService();
-            }
 
+                // ASF Service
+                services.AddArchiSteamFarmService();
+#if StartupTrace
+                StartupTrace.Restart("DI.ConfigureDemandServices.Steam");
+#endif
+            }
+#endif
+#if !CONSOLEAPP
             if (hasMainProcessRequired)
             {
                 // 应用程序更新服务
                 services.AddAppUpdateService();
-            }
-            if (HasNotifyIcon)
-            {
-                // 托盘图标
-#if WINDOWS
-                //services.AddTransient<INotifyIconWindow<ContextMenu>, Win32NotifyIconWindow>();
-#endif
-#if !UI_DEMO
-                services.AddNotifyIcon<NotifyIconImpl>();
+#if StartupTrace
+                StartupTrace.Restart("DI.ConfigureDemandServices.AppUpdateService");
 #endif
             }
 #endif
@@ -283,163 +380,74 @@ namespace System.Application
         }
 #endif
 
-        static AppSettings AppSettings
+#if !CONSOLEAPP
+        static AppSettings? mAppSettings;
+        public static AppSettings AppSettings
         {
             get
             {
-                var options = new AppSettings
+                if (mAppSettings == null)
                 {
-                    AppVersion = GetResValueGuid("app-id", isSingle: false, ResValueFormat.StringGuidN),
-                    AesSecret = GetResValue("aes-key", isSingle: true, ResValueFormat.String),
-                    RSASecret = GetResValue("rsa-public-key", isSingle: false, ResValueFormat.String),
-                };
-                SetApiBaseUrl(options);
-                return options;
-                static Guid GetResValueGuid(string name, bool isSingle, ResValueFormat format) => GetResValue(name, isSingle, format).TryParseGuidN() ?? default;
-                static string? GetResValue(string name, bool isSingle, ResValueFormat format)
-                {
-                    const string namespacePrefix = "System.Application.UI.Resources.";
-                    var assembly = Assembly.GetExecutingAssembly();
-                    Stream? func(string x) => assembly.GetManifestResourceStream(x);
-                    var r = AppClientAttribute.GetResValue(func, name, isSingle, namespacePrefix, format);
-                    return r;
-                }
-                static void SetApiBaseUrl(AppSettings s)
-                {
-#if DEBUG
-                    if (BuildConfig.IsAigioPC)
-                    {
-                        try
-                        {
-                            var url = CSConst.Prefix_HTTPS + "localhost:5001";
-                            var request = WebRequest.CreateHttp(url);
-                            request.Timeout = 999;
-                            request.GetResponse();
-                            s.ApiBaseUrl = url;
-                            return;
-                        }
-                        catch (Exception e)
-                        {
-                            Debug.WriteLine(e.ToString());
-                        }
-                    }
+#if StartupTrace
+                    var stopwatch = Stopwatch.StartNew();
 #endif
-                    var value =
-                        (ThisAssembly.Debuggable || !s.GetIsOfficialChannelPackage()) ?
-                        CSConst.Prefix_HTTPS + "pan.mossimo.net:8862" :
-                        CSConst.Prefix_HTTPS + "api.steampp.net";
-                    s.ApiBaseUrl = value;
+                    mAppSettings = new AppSettings
+                    {
+                        AppVersion = GetResValueGuid("app-id", isSingle: false, ResValueFormat.StringGuidN),
+                        AesSecret = GetResValue("aes-key", isSingle: true, ResValueFormat.String),
+                        RSASecret = GetResValue("rsa-public-key", isSingle: false, ResValueFormat.String),
+#if __MOBILE__
+                        MASLClientId = GetResValueGuid("masl-client-id", isSingle: true, ResValueFormat.StringGuidN),
+#endif
+                    };
+                    SetApiBaseUrl(mAppSettings);
+#if StartupTrace
+                    stopwatch.Stop();
+                    Console.WriteLine($"Load AppSettings, value: {stopwatch.ElapsedMilliseconds}");
+#endif
+                    static Guid GetResValueGuid(string name, bool isSingle, ResValueFormat format) => GetResValue(name, isSingle, format).TryParseGuidN() ?? default;
+                    static string? GetResValue(string name, bool isSingle, ResValueFormat format)
+                    {
+                        const string namespacePrefix = "System.Application.UI.Resources.";
+                        var assembly = Assembly.GetExecutingAssembly();
+                        Stream? func(string x) => assembly.GetManifestResourceStream(x);
+                        var r = AppClientAttribute.GetResValue(func, name, isSingle, namespacePrefix, format);
+                        return r;
+                    }
+                    static void SetApiBaseUrl(AppSettings s)
+                    {
+                        //#if DEBUG
+                        //                        if (BuildConfig.IsAigioPC && Program.IsMainProcess)
+                        //                        {
+                        //                            try
+                        //                            {
+                        //                                var url = Prefix_HTTPS + "localhost:5001";
+                        //                                var request = WebRequest.CreateHttp(url);
+                        //                                request.Timeout = 1888;
+                        //                                request.GetResponse();
+                        //                                s.ApiBaseUrl = url;
+                        //                                return;
+                        //                            }
+                        //                            catch (Exception e)
+                        //                            {
+                        //                                Debug.WriteLine(e.ToString());
+                        //                            }
+                        //                        }
+                        //#endif
+                        var value =
+                            (_ThisAssembly.Debuggable || !s.GetIsOfficialChannelPackage()) ?
+                            Prefix_HTTPS + "pan.mossimo.net:8862" :
+                            Prefix_HTTPS + "api.steampp.net";
+                        s.ApiBaseUrl = value;
+                    }
                 }
+                return mAppSettings;
             }
         }
+#endif
 
-#if !__MOBILE__
+#if !__MOBILE__ && !CONSOLEAPP
         public static bool HasNotifyIcon { get; private set; }
-
-#if !UI_DEMO
-        sealed class NotifyIconImpl : NotifyIcon<ContextMenu>, INotifyIcon { }
-#endif
-
-#if WINDOWS
-        //sealed class Win32NotifyIconWindow : MainWindow, INotifyIconWindow<ContextMenu>
-        //{
-        //    sealed class Win32WindowImpl : Avalonia.Win32.WindowImpl
-        //    {
-        //        public Win32NotifyIconWindow? Window { get; set; }
-
-        //        protected override IntPtr WndProc(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam)
-        //        {
-        //            var _notifyIcon = Window?.NotifyIcon;
-        //            var value = _notifyIcon == null ? null : NotifyIcon<ContextMenu>.WndProc(_notifyIcon, msg, wParam, lParam);
-        //            return value ?? base.WndProc(hWnd, msg, wParam, lParam);
-        //        }
-        //    }
-
-        //    public Win32NotifyIconWindow() : base(new Win32WindowImpl())
-        //    {
-        //        if (PlatformImpl is Win32WindowImpl impl)
-        //        {
-        //            impl.Window = this;
-        //        }
-        //        else
-        //        {
-        //            throw new PlatformNotSupportedException();
-        //        }
-        //    }
-
-        //    public IntPtr Handle => PlatformImpl.Handle.Handle;
-
-        //    [NotNull, DisallowNull] // C# 8 not null
-        //    public NotifyIcon<ContextMenu>? NotifyIcon { get; private set; }
-
-        //    public void Initialize(INotifyIcon<ContextMenu> notifyIcon)
-        //    {
-        //        if (notifyIcon is NotifyIcon<ContextMenu> _notifyIcon)
-        //        {
-        //            NotifyIcon = _notifyIcon;
-        //        }
-        //        else
-        //        {
-        //            throw new PlatformNotSupportedException();
-        //        }
-        //        //Content = NotifyIcon;
-        //    }
-        //}
-
-        //        sealed class WPFMessageBoxCompatService : IMessageBoxCompatService
-        //        {
-        //            static MessageBoxButton GetButtonEnum(MessageBoxButtonCompat button) => button switch
-        //            {
-        //                MessageBoxButtonCompat.OK => MessageBoxButton.OK,
-        //                MessageBoxButtonCompat.OKCancel => MessageBoxButton.OKCancel,
-        //#pragma warning disable CS0618 // 类型或成员已过时
-        //                MessageBoxButtonCompat.YesNo => MessageBoxButton.YesNo,
-        //                MessageBoxButtonCompat.YesNoCancel => MessageBoxButton.YesNoCancel,
-        //#pragma warning restore CS0618 // 类型或成员已过时
-        //                _ => throw new ArgumentOutOfRangeException(nameof(button), $"value: {button}"),
-        //            };
-
-        //            static MessageBoxImage GetIcon(MessageBoxImageCompat icon) => icon switch
-        //            {
-        //                MessageBoxImageCompat.Asterisk => MessageBoxImage.Asterisk,
-        //                MessageBoxImageCompat.Error => MessageBoxImage.Error,
-        //                MessageBoxImageCompat.Exclamation => MessageBoxImage.Exclamation,
-        //                MessageBoxImageCompat.None => MessageBoxImage.None,
-        //#pragma warning disable CS0618 // 类型或成员已过时
-        //                MessageBoxImageCompat.Question => MessageBoxImage.Question,
-        //#pragma warning restore CS0618 // 类型或成员已过时
-        //                _ => throw new ArgumentOutOfRangeException(nameof(icon), $"value: {icon}"),
-        //            };
-
-        //            static MessageBoxResultCompat GetResult(MessageBoxResult result) => result switch
-        //            {
-        //                MessageBoxResult.OK => MessageBoxResultCompat.OK,
-        //#pragma warning disable CS0618 // 类型或成员已过时
-        //                MessageBoxResult.Yes => MessageBoxResultCompat.Yes,
-        //                MessageBoxResult.No => MessageBoxResultCompat.No,
-        //#pragma warning restore CS0618 // 类型或成员已过时
-        //                MessageBoxResult.Cancel => MessageBoxResultCompat.Cancel,
-        //                MessageBoxResult.None => MessageBoxResultCompat.None,
-        //                _ => throw new ArgumentOutOfRangeException(nameof(result), $"value: {result}"),
-        //            };
-
-        //            public Task<MessageBoxResultCompat> ShowAsync(string messageBoxText, string caption, MessageBoxButtonCompat button, MessageBoxImageCompat? icon)
-        //            {
-        //                var button_ = GetButtonEnum(button);
-        //                if (icon.HasValue)
-        //                {
-        //                    var icon_ = GetIcon(icon.Value);
-        //                    var result = MessageBox.Show(messageBoxText, caption, button_, icon_);
-        //                    return Task.FromResult(GetResult(result));
-        //                }
-        //                else
-        //                {
-        //                    var result = MessageBox.Show(messageBoxText, caption, button_);
-        //                    return Task.FromResult(GetResult(result));
-        //                }
-        //            }
-        //        }
-#endif
 #endif
 
 #if UI_DEMO
@@ -470,6 +478,7 @@ namespace System.Application
         }
 #endif
 
+#if !CONSOLEAPP
         /// <inheritdoc cref="IActiveUserClient.Post(ActiveUserRecordDTO, Guid?)"/>
         internal static async void ActiveUserPost(ActiveUserType type)
         {
@@ -512,8 +521,48 @@ namespace System.Application
             }
             catch (Exception e)
             {
-                Log.Error(nameof(App), e, "ActiveUserPost");
+                Log.Error(nameof(Startup), e, "ActiveUserPost");
+            }
+        }
+#endif
+
+        public static void OnStartup(bool isMainProcess)
+        {
+            if (isMainProcess)
+            {
+                ActiveUserPost(ActiveUserType.OnStartup);
+                if (GeneralSettings.IsAutoCheckUpdate.Value)
+                {
+                    IAppUpdateService.Instance.CheckUpdate(showIsExistUpdateFalse: false);
+                }
             }
         }
     }
+
+#if StartupTrace
+    /// <summary>
+    /// 启动耗时跟踪
+    /// </summary>
+    static class StartupTrace
+    {
+        static Stopwatch? sw;
+
+        public static void Restart(string? mark = null)
+        {
+            if (sw != null)
+            {
+                sw.Stop();
+                var args = string.Join(" ", Environment.GetCommandLineArgs().Skip(1).Take(1));
+                var msg = $"{(string.IsNullOrWhiteSpace(args) ? "" : args + " ")}mark: {mark}, value: {sw.ElapsedMilliseconds}";
+                Debug.WriteLine(msg);
+                Console.WriteLine(msg);
+                sw.Restart();
+            }
+            else
+            {
+                sw = Stopwatch.StartNew();
+            }
+        }
+    }
+#endif
 }

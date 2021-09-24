@@ -1,4 +1,4 @@
-﻿#if (DEBUG && !UI_DEMO) || (!DEBUG && UI_DEMO)
+#if (DEBUG && !UI_DEMO) || (!DEBUG && UI_DEMO)
 using System.Application.Models;
 using System.Application.Services.CloudService.Clients.Abstractions;
 using System.Collections.Generic;
@@ -93,9 +93,28 @@ namespace System.Application.Services.CloudService
             }
         }
 
+        public async Task<IApiResponse> BindPhoneNumber(BindPhoneNumberRequest request)
+        {
+            var mockDelay = false;
+            var rsp = ModelValidator(request) ?? BindPhoneNumber_();
+            if (mockDelay) await Task.Delay(1500);
+            GlobalResponseIntercept(rsp);
+            return rsp;
+            IApiResponse BindPhoneNumber_()
+            {
+                mockDelay = true;
+                return ApiResponse.Ok();
+            }
+        }
+
         public Task<IApiResponse<AppVersionDTO?>> CheckUpdate(Guid id, Platform platform, DeviceIdiom deviceIdiom, ArchitectureFlags supportedAbis, Version osVersion, ArchitectureFlags abi)
         {
             return Task.FromResult(ApiResponse.Ok<AppVersionDTO?>(default));
+        }
+
+        public Task<IApiResponse> UnbundleAccount(FastLoginChannel channel)
+        {
+            return Task.FromResult(ApiResponse.Ok());
         }
 
         public Task<IApiResponse<ClockInResponse>> ClockIn()
@@ -111,7 +130,7 @@ namespace System.Application.Services.CloudService
             return Task.FromResult(ApiResponse.Ok());
         }
 
-        public Task<IApiResponse> Download(bool isAnonymous, string requestUri, string cacheFilePath, IProgress<float> progress, CancellationToken cancellationToken = default)
+        public Task<IApiResponse> Download(bool isAnonymous, string requestUri, string cacheFilePath, IProgress<float>? progress, CancellationToken cancellationToken = default)
         {
             return Task.FromResult(ApiResponse.Ok());
         }

@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace System.Application.UI.ViewModels
 {
-    public class MainWindowViewModel : WindowViewModel
+    public partial class MainWindowViewModel : WindowViewModel
     {
         #region 更改通知
 
@@ -37,18 +37,16 @@ namespace System.Application.UI.ViewModels
 
         #endregion
 
-        public StartPageViewModel StartPage { get; }
-        public CommunityProxyPageViewModel CommunityProxyPage { get; }
-        public ProxyScriptManagePageViewModel ProxyScriptPage { get; }
-        public SteamAccountPageViewModel SteamAccountPage { get; }
-        public GameListPageViewModel GameListPage { get; }
-        public LocalAuthPageViewModel LocalAuthPage { get; }
-        public SteamIdlePageViewModel SteamIdlePage { get; }
-        public ArchiSteamFarmPlusPageViewModel ASFPage { get; }
-        public GameRelatedPageViewModel GameRelatedPage { get; }
-        public OtherPlatformPageViewModel OtherPlatformPage { get; }
-
-        public IReadOnlyList<TabItemViewModel> TabItems { get; set; }
+        public StartPageViewModel StartPage => GetTabItemVM<StartPageViewModel>();
+        public CommunityProxyPageViewModel CommunityProxyPage => GetTabItemVM<CommunityProxyPageViewModel>();
+        public ProxyScriptManagePageViewModel ProxyScriptPage => GetTabItemVM<ProxyScriptManagePageViewModel>();
+        public SteamAccountPageViewModel SteamAccountPage => GetTabItemVM<SteamAccountPageViewModel>();
+        public GameListPageViewModel GameListPage => GetTabItemVM<GameListPageViewModel>();
+        public LocalAuthPageViewModel LocalAuthPage => GetTabItemVM<LocalAuthPageViewModel>();
+        public SteamIdlePageViewModel SteamIdlePage => GetTabItemVM<SteamIdlePageViewModel>();
+        public ArchiSteamFarmPlusPageViewModel ASFPage => GetTabItemVM<ArchiSteamFarmPlusPageViewModel>();
+        public GameRelatedPageViewModel GameRelatedPage => GetTabItemVM<GameRelatedPageViewModel>();
+        public OtherPlatformPageViewModel OtherPlatformPage => GetTabItemVM<OtherPlatformPageViewModel>();
 
         public MainWindowViewModel() : base()
         {
@@ -61,67 +59,44 @@ namespace System.Application.UI.ViewModels
 
             OpenUserMenu = ReactiveCommand.Create(() =>
             {
-                IsOpenUserMenu = UserService.Current.User != null;
+                IsOpenUserMenu = UserService.Current.IsAuthenticated;
                 if (!IsOpenUserMenu)
                 {
                     UserService.Current.ShowWindow(CustomWindow.LoginOrRegister);
                 }
             });
 
-            var tabItems = new List<TabItemViewModel>
-            {
-                (StartPage = new StartPageViewModel().AddTo(this)),
-                (CommunityProxyPage = new CommunityProxyPageViewModel().AddTo(this)),
-                (ProxyScriptPage = new ProxyScriptManagePageViewModel().AddTo(this)),
-                (SteamAccountPage = new SteamAccountPageViewModel().AddTo(this)),
-                (GameListPage = new GameListPageViewModel().AddTo(this)),
-                (LocalAuthPage = new LocalAuthPageViewModel().AddTo(this)),
-                //(SteamIdlePage = new SteamIdlePageViewModel().AddTo(this)),
-                //(ASFPage = new ArchiSteamFarmPlusPageViewModel().AddTo(this)),
-                //(GameRelatedPage = new GameRelatedPageViewModel().AddTo(this)),
-                //(OtherPlatformPage = new OtherPlatformPageViewModel().AddTo(this)),
-
-				#region SystemTab
-                SettingsPageViewModel.Instance,
-                AboutPageViewModel.Instance,
-				#endregion
-            };
-
-            if (AppHelper.EnableDevtools)
-            {
-                tabItems.Add(new DebugPageViewModel().AddTo(this));
-                tabItems.Add(new DebugWebViewPageViewModel().AddTo(this));
-            }
-
-            TabItems = tabItems;
+            FooterTabItems = InitTabItemsWithReturnFooterTabItems();
 
             _SelectedItem = TabItems.First();
 
-            Task.Run(Initialize).ForgetAndDispose();
+            //Task.Run(Initialize).ForgetAndDispose();
 
-            this.WhenAnyValue(x => x.SelectedItem)
-                .Subscribe(x =>
-                {
-                    Task.Run(x.Activation).ForgetAndDispose();
-                });
+            //this.WhenAnyValue(x => x.SelectedItem)
+            //    .Subscribe(x =>
+            //    {
+            //        Task.Run(x.Activation).ForgetAndDispose();
+            //    });
         }
 
-        public void Initialize()
+        public override void Initialize()
         {
-            Threading.Thread.CurrentThread.IsBackground = true;
-            SteamConnectService.Current.Initialize();
-            ProxyService.Current.Initialize();
-            AuthService.Current.Initialize();
-
-            if (!IsInitialized)
+            Task.Run(() =>
             {
-                Parallel.ForEach(TabItems, item =>
+                Threading.Thread.CurrentThread.IsBackground = true;
+                ProxyService.Current.Initialize();
+                SteamConnectService.Current.Initialize();
+
+                if (!IsInitialized)
                 {
-                    item.Initialize();
-                    //Task.Run(item.Initialize).ForgetAndDispose();
-                });
-                IsInitialized = true;
-            }
+                    Parallel.ForEach(TabItems, item =>
+                    {
+                        item.Initialize();
+                        //Task.Run(item.Initialize).ForgetAndDispose();
+                    });
+                    IsInitialized = true;
+                }
+            }).ForgetAndDispose();
         }
     }
 }

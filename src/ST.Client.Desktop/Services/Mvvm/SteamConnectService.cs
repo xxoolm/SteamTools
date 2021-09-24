@@ -2,9 +2,13 @@ using DynamicData;
 using ReactiveUI;
 using System.Application.Models;
 using System.Application.Models.Settings;
+using System.Application.UI;
 using System.Application.UI.Resx;
 using System.Application.UI.ViewModels;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -19,22 +23,45 @@ namespace System.Application.Services
         #endregion
 
         private readonly ISteamworksLocalApiService ApiService = ISteamworksLocalApiService.Instance;
-        private readonly ISteamworksWebApiService SteamworksWebApiService = ISteamworksWebApiService.Instance;
-        private readonly ISteamDbWebApiService steamDbApiService = ISteamDbWebApiService.Instance;
+        //private readonly ISteamworksWebApiService SteamworksWebApiService = ISteamworksWebApiService.Instance;
+        //private readonly ISteamDbWebApiService steamDbApiService = ISteamDbWebApiService.Instance;
         private readonly ISteamService SteamTool = ISteamService.Instance;
+        public const int SteamAFKMaxCount = 32;
 
         public SteamConnectService()
         {
             SteamApps = new SourceCache<SteamApp, uint>(t => t.AppId);
+            DownloadApps = new SourceCache<SteamApp, uint>(t => t.AppId);
+
+            DownloadApps
+                .Connect()
+                .Subscribe(_ =>
+                {
+                    var dict = SteamApps.KeyValues.ToDictionary(x => x.Key, v => v.Value);
+                    foreach (var app in DownloadApps.Items)
+                    {
+                        if (dict.TryGetValue(app.AppId, out SteamApp? value) && value is not null)
+                        {
+                            value.InstalledDir = app.InstalledDir;
+                            value.State = app.State;
+                            value.SizeOnDisk = app.SizeOnDisk;
+                            value.LastOwner = app.LastOwner;
+                            value.BytesToDownload = app.BytesToDownload;
+                            value.BytesDownloaded = app.BytesDownloaded;
+                            value.LastUpdated = app.LastUpdated;
+                        }
+                    }
+                });
         }
 
         #region Steam游戏列表
         public SourceCache<SteamApp, uint> SteamApps { get; }
+        public SourceCache<SteamApp, uint> DownloadApps { get; }
         #endregion
 
         #region 运行中的游戏列表
-        private IList<SteamApp> _RuningSteamApps = new List<SteamApp>();
-        public IList<SteamApp> RuningSteamApps
+        private ConcurrentDictionary<uint, SteamApp> _RuningSteamApps = new ConcurrentDictionary<uint, SteamApp>();
+        public ConcurrentDictionary<uint, SteamApp> RuningSteamApps
         {
             get => _RuningSteamApps;
             set
@@ -61,6 +88,14 @@ namespace System.Application.Services
                     this.RaisePropertyChanged();
                 }
             }
+        }
+
+        const string DefaultAvaterPath = "avares://System.Application.SteamTools.Client.Desktop.Avalonia/Application/UI/Assets/AppResources/avater.jpg";
+        object? _AvaterPath = DefaultAvaterPath;
+        public object? AvaterPath
+        {
+            get => _AvaterPath;
+            set => this.RaiseAndSetIfChanged(ref _AvaterPath, value);
         }
         #endregion
 
@@ -92,10 +127,11 @@ namespace System.Application.Services
                 }
             }
         }
-        #endregion
 
-        #region 是否已经释放SteamClient
-        private bool _IsDisposedClient;
+        private bool _IsDisposedClient = true;
+        /// <summary>
+        /// 是否已经释放SteamClient
+        /// </summary>
         public bool IsDisposedClient
         {
             get => _IsDisposedClient;
@@ -110,25 +146,64 @@ namespace System.Application.Services
         }
         #endregion
 
+        private bool _IsLoadingGameList = true;
+        public bool IsLoadingGameList
+        {
+            get => _IsLoadingGameList;
+            set
+            {
+                if (_IsLoadingGameList != value)
+                {
+                    _IsLoadingGameList = value;
+                    this.RaisePropertyChanged();
+                }
+            }
+        }
+
+        public void RunAFKApps()
+        {
+            if (GameLibrarySettings.AFKAppList.Value?.Count > 0)
+            {
+                foreach (var item in GameLibrarySettings.AFKAppList.Value)
+                {
+                    RuningSteamApps.TryGetValue(item.Key, out var runState);
+                    if (runState == null)
+                        RuningSteamApps.TryAdd(item.Key, new SteamApp
+                        {
+                            AppId = item.Key,
+                            Name = item.Value
+                        });
+                }
+                var t = new Task(() =>
+                {
+                    foreach (var item in RuningSteamApps.Values)
+                    {
+                        if (item.Process == null)
+                            item.StartSteamAppProcess();
+                    }
+                });
+                t.Start();
+            }
+        }
 
         public void Initialize()
         {
             if (!SteamTool.IsRunningSteamProcess && SteamSettings.IsAutoRunSteam.Value)
-                SteamTool.StartSteam(SteamSettings.SteamStratParameter);
+                SteamTool.StartSteam(SteamSettings.SteamStratParameter.Value);
 
-            Task.Run(InitializeGameList).ForgetAndDispose();
-
-            var t = new Task(async () =>
+            Task.Factory.StartNew(async () =>
             {
                 Thread.CurrentThread.IsBackground = true;
-                try
+                while (true)
                 {
-                    while (true)
+                    try
                     {
                         if (SteamTool.IsRunningSteamProcess)
                         {
-                            if (!IsConnectToSteam)
+                            if (!IsConnectToSteam && IsDisposedClient)
                             {
+                                IsDisposedClient = false;
+                                await Task.Delay(1000);
                                 if (ApiService.Initialize())
                                 {
                                     var id = ApiService.GetSteamId64();
@@ -139,136 +214,153 @@ namespace System.Application.Services
                                         continue;
                                     }
                                     IsConnectToSteam = true;
-                                    CurrentSteamUser = await SteamworksWebApiService.GetUserInfo(id);
+                                    CurrentSteamUser = await DI.Get<ISteamworksWebApiService>().GetUserInfo(id);
+                                    CurrentSteamUser.AvatarStream = IHttpService.Instance.GetImageAsync(CurrentSteamUser.AvatarFull, ImageChannelType.SteamAvatars);
+                                    AvaterPath = ImageSouce.TryParse(await CurrentSteamUser.AvatarStream, isCircle: true);
+
                                     CurrentSteamUser.IPCountry = ApiService.GetIPCountry();
                                     IsSteamChinaLauncher = ApiService.IsSteamChinaLauncher();
 
                                     #region 初始化需要steam启动才能使用的功能
-                                    InitializeGameList();
-
-                                    while (true)
+                                    if (SteamSettings.IsEnableSteamLaunchNotification.Value)
                                     {
-                                        if (SteamApps.Items.Any())
-                                        {
-                                            LoadGames(ApiService.OwnsApps(SteamApps.Items));
-                                            break;
-                                        }
+                                        INotificationService.Instance.Notify($"{AppResources.Steam_CheckStarted}{(IsSteamChinaLauncher ? AppResources.Steam_SteamChina : AppResources.Steam_SteamWorld)}{Environment.NewLine}{AppResources.Steam_CurrentUser}{CurrentSteamUser.SteamNickName}{Environment.NewLine}{AppResources.Steam_CurrentIPCountry}{CurrentSteamUser.IPCountry}", NotificationType.Message);
                                     }
 
+
+                                    if (GameLibrarySettings.IsAutoAFKApps.Value)
+                                    {
+                                        RunAFKApps();
+                                    }
+
+                                    //仅在有游戏数据情况下加载登录用户的游戏
+                                    if (SteamApps.Items.Any())
+                                    {
+                                        LoadGames(ApiService.OwnsApps(await ISteamService.Instance.GetAppInfos()));
+                                        InitializeDownloadGameList();
+                                    }
                                     //var mainViewModel = (IWindowService.Instance.MainWindow as WindowViewModel);
                                     //await mainViewModel.SteamAppPage.Initialize();
                                     //await mainViewModel.AccountPage.Initialize(id);
                                     #endregion
-
-                                    DisposeSteamClient();
                                 }
                             }
                         }
                         else
                         {
                             IsConnectToSteam = false;
+                            CurrentSteamUser = null;
+                            AvaterPath = DefaultAvaterPath;
                         }
-                        Thread.Sleep(2000);
+                        await Task.Delay(3000);
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Error(nameof(SteamConnectService), ex, "SteamConnect Task LongRunning");
+                        ToastService.Current.Notify(ex.Message);
+                    }
+                    finally
+                    {
+                        if (!IsDisposedClient && !_IsRefreshing)
+                        {
+                            DisposeSteamClient();
+                        }
                     }
                 }
-                catch (Exception ex)
-                {
-                    Log.Error(nameof(SteamConnectService), ex, "Task LongRunning");
-                    ToastService.Current.Notify(ex.Message);
-                }
-            }, TaskCreationOptions.LongRunning);
-
-            //t.Forget();
-            t.Start();
+            }, TaskCreationOptions.LongRunning).ConfigureAwait(false);
         }
 
-        public void Initialize(int appid)
+        public bool Initialize(int appid)
         {
             if (SteamTool.IsRunningSteamProcess)
             {
-                IsConnectToSteam = ApiService.Initialize(appid);
+                return IsConnectToSteam = ApiService.Initialize(appid);
             }
+            return false;
         }
 
-        private void LoadGames(IEnumerable<SteamApp> apps)
+        private void LoadGames(IEnumerable<SteamApp>? apps)
         {
             SteamApps.Clear();
-            if (apps.Any())
-                SteamApps.AddOrUpdate(apps);
+            if (apps.Any_Nullable())
+                SteamApps.AddOrUpdate(apps!);
         }
 
         public async void InitializeGameList()
         {
+            IsLoadingGameList = true;
             LoadGames(await ISteamService.Instance.GetAppInfos());
             //UpdateGamesImage();
+            InitializeDownloadGameList();
+            IsLoadingGameList = false;
         }
 
-        public void UpdateGamesImage()
+        public void InitializeDownloadGameList()
         {
-#if DEBUG
-            if (BuildConfig.IsDebuggerAttached)
+            var apps = ISteamService.Instance.GetDownloadingAppList();
+            if (apps.Any_Nullable())
             {
-                return;
-            }
-#endif
-            if (SteamApps.Items.Any())
-            {
-                Parallel.ForEach(SteamApps.Items, new ParallelOptions
-                {
-                    MaxDegreeOfParallelism = (Environment.ProcessorCount / 2) + 1
-                }, async app =>
-                {
-                    await ISteamService.Instance.LoadAppImageAsync(app);
-                    //app.LibraryLogoStream = await IHttpService.Instance.GetImageAsync(app.LibraryLogoUrl, ImageChannelType.SteamGames);
-                    //app.LibraryHeaderStream = await IHttpService.Instance.GetImageAsync(app.LibraryHeaderUrl, ImageChannelType.SteamGames);
-                    //app.LibraryNameStream = await IHttpService.Instance.GetImageAsync(app.LibraryNameUrl, ImageChannelType.SteamGames);
-                    //app.HeaderLogoStream = await IHttpService.Instance.GetImageAsync(app.HeaderLogoUrl, ImageChannelType.SteamGames);
-                });
+                DownloadApps.Clear();
+                DownloadApps.AddOrUpdate(apps);
             }
         }
 
+        private bool _IsRefreshing;
         public /*async*/ void RefreshGamesList()
         {
-            var t = new Task(() =>
+            if (_IsRefreshing == false)
             {
-                Thread.CurrentThread.IsBackground = true;
-                try
+                _IsRefreshing = true;
+                if (SteamTool.IsRunningSteamProcess)
                 {
-                    while (true)
+                    Task.Factory.StartNew(async () =>
                     {
-                        if (SteamTool.IsRunningSteamProcess)
+                        try
                         {
-                            if (ApiService.Initialize())
+                            while (true)
                             {
-                                while (true)
+                                if (SteamTool.IsRunningSteamProcess && IsDisposedClient)
                                 {
-                                    InitializeGameList();
-                                    if (SteamApps.Items.Any())
+                                    IsDisposedClient = false;
+                                    if (ApiService.Initialize())
                                     {
-                                        LoadGames(ApiService.OwnsApps(SteamApps.Items));
-                                        //UpdateGamesImage();
-                                        Toast.Show(AppResources.GameList_RefreshGamesListSucess);
-                                        DisposeSteamClient();
-                                        return;
+                                        SteamApps.Clear();
+                                        var apps = await ISteamService.Instance.GetAppInfos();
+                                        if (apps.Any())
+                                        {
+                                            var temps = ApiService.OwnsApps(apps);
+                                            LoadGames(temps);
+                                            InitializeDownloadGameList();
+                                            Toast.Show(AppResources.GameList_RefreshGamesListSucess);
+                                            DisposeSteamClient();
+                                            IsLoadingGameList = false;
+                                            _IsRefreshing = false;
+                                            return;
+                                        }
                                     }
                                 }
+                                Thread.Sleep(2000);
                             }
                         }
-                        Thread.Sleep(2000);
-                    }
+                        catch (Exception ex)
+                        {
+                            Log.Error(nameof(SteamConnectService), ex, "Task RefreshGamesList");
+                            ToastService.Current.Notify(ex.Message);
+                        }
+                    }, TaskCreationOptions.DenyChildAttach).Forget().ConfigureAwait(false);
                 }
-                catch (Exception ex)
+                else
                 {
-                    Log.Error(nameof(SteamConnectService), ex, "Task RefreshGamesList");
-                    ToastService.Current.Notify(ex.Message);
+                    InitializeGameList();
+                    Toast.Show(AppResources.GameList_RefreshGamesListSucess);
+                    _IsRefreshing = false;
                 }
-            }, TaskCreationOptions.LongRunning);
-            t.Start();
+            }
         }
 
         public void Dispose()
         {
-            foreach (var app in Current.RuningSteamApps)
+            foreach (var app in Current.RuningSteamApps.Values)
             {
                 if (app.Process != null)
                     if (!app.Process.HasExited)

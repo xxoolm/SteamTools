@@ -1,4 +1,4 @@
-﻿#if MVVM_VM
+#if MVVM_VM
 using ReactiveUI;
 using DynamicData;
 using DynamicData.Binding;
@@ -80,7 +80,11 @@ namespace System.Application.Models
         [MPIgnore]
         [N_JsonIgnore]
         [S_JsonIgnore]
-        public Task<string?>? ImageStream { get; set; }
+        public Task<string?>? ImageStream
+        {
+            get => _ImageStream;
+            set => this.RaiseAndSetIfChanged(ref _ImageStream, value);
+        }
 #endif
 
         /// <summary>
@@ -89,8 +93,7 @@ namespace System.Application.Models
         [MPKey(0)]
         [N_JsonProperty("0")]
         [S_JsonProperty("0")]
-        [NotNull, DisallowNull] // C# 8 not null
-        public string? Name { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
 
         /// <summary>
         /// 当前组中所有的加速项目集合
@@ -98,7 +101,6 @@ namespace System.Application.Models
         [MPKey(1)]
         [N_JsonProperty("1")]
         [S_JsonProperty("1")]
-        [NotNull, DisallowNull] // C# 8 not null
         public List<AccelerateProjectDTO>? Items
 #if MVVM_VM
         {
@@ -135,6 +137,11 @@ namespace System.Application.Models
         { get; set; }
 #endif
 
+        [MPKey(4)]
+        [N_JsonProperty("4")]
+        [S_JsonProperty("4")]
+        public int Order { get; set; }
+
 #if MVVM_VM
         /// <summary>
         /// 是否有子项目选中的第三状态（仅客户端）
@@ -149,9 +156,12 @@ namespace System.Application.Models
             {
                 mThreeStateEnable = value;
                 Enable = mThreeStateEnable == true;
-                foreach (var item in this.Items)
+                if (Items != null)
                 {
-                    item.Enable = Enable;
+                    foreach (var item in Items)
+                    {
+                        item.Enable = Enable;
+                    }
                 }
                 this.RaisePropertyChanged();
             }

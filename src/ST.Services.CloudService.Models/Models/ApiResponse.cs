@@ -39,9 +39,16 @@ namespace System.Application.Models
             return (IApiResponse<T>?)obj ?? ClientDeserializeFail<T>();
         }
 
+        public static IApiResponse<T> Deserialize<T>(byte[] buffer)
+        {
+            var type = GetDeserializeType<T>();
+            var obj = MessagePackSerializer.Deserialize(type, buffer, options: Serializable.lz4Options);
+            return (IApiResponse<T>?)obj ?? ClientDeserializeFail<T>();
+        }
+
         public static bool TryGetContent<T>(
-            this IApiResponse<T> response,
-            [NotNullWhen(true)] out T? content)
+             this IApiResponse<T> response,
+             [NotNullWhen(true)] out T? content)
         {
             content = response.Content;
             return response.IsSuccess && content != null;
@@ -65,9 +72,16 @@ namespace System.Application.Models
             {
                 return Const.UserIsBanErrorMessage;
             }
+            static bool IsCEOrSE(ApiResponseCode code) => code switch
+            {
+                ApiResponseCode.ClientException => true,
+                _ => false,
+            };
             if (string.IsNullOrWhiteSpace(errorAppendText))
-                return SR.ServerError_.Format((int)code);
-            return SR.ServerError__.Format((int)code, errorAppendText);
+                return (IsCEOrSE(code) ? SR.ClientError_ : SR.ServerError_)
+                    .Format((int)code);
+            return (IsCEOrSE(code) ? SR.ClientError__ : SR.ServerError__)
+                .Format((int)code, errorAppendText);
         }
 
         public static string GetMessage(IApiResponse response, string? errorAppendText = null)

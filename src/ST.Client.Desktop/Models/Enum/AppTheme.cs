@@ -1,28 +1,20 @@
-﻿namespace System.Application.Models
+using System.Application.Models;
+using System.Application.UI.Resx;
+
+namespace System
 {
-    /// <summary>
-    /// 应用程序主题
-    /// </summary>
-    public enum AppTheme : byte
+    public static partial class AppThemeEnumExtensions
     {
         /// <summary>
-        /// 跟随系统
+        /// Resx
         /// </summary>
-        FollowingSystem,
-
-        /// <summary>
-        /// 亮色主题
-        /// </summary>
-        Light,
-
-        /// <summary>
-        /// 暗色主题
-        /// </summary>
-        Dark,
-
-        /// <summary>
-        /// 自定义主题
-        /// </summary>
-        Custom,
+        /// <param name="value"></param>
+        /// <returns></returns>
+        public static string ToString3(this AppTheme value) => value switch
+        {
+            AppTheme.FollowingSystem => AppResources.Settings_UI_SystemDefault,
+            AppTheme.Light => AppResources.Settings_UI_Light,
+            _ => AppResources.Settings_UI_Dark,
+        };
     }
 }

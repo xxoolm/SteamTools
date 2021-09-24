@@ -1,10 +1,11 @@
-﻿using Android.Graphics;
+using Android.Graphics;
 using Android.Text;
 using Android.Text.Method;
 using Android.Views;
 using Android.Widget;
 using AndroidX.Annotations;
-using AndroidX.Emoji.Text;
+using Google.Android.Material.TextField;
+//using AndroidX.Emoji.Text;
 using System;
 using System.Common;
 using System.Linq;
@@ -18,17 +19,17 @@ namespace System
     /// </summary>
     public static class TextViewExtensions
     {
-        /// <summary>
-        /// 设置 <see cref="TextView.Hint"/>，字符串中可能有 emoji 字符
-        /// <para>https://developer.android.google.cn/reference/android/widget/TextView#setHint(java.lang.CharSequence)</para>
-        /// </summary>
-        /// <param name="maybeEmojiStr">可能有 emoji 字符的字符串</param>
-        public static void SetHintByMaybeEmoji(this TextView textView, string maybeEmojiStr)
-        {
-            // https://developer.android.google.cn/guide/topics/ui/look-and-feel/emoji-compat#using-emojicompat-without-widgets
-            var processed = EmojiCompat.Get().ProcessFormatted(maybeEmojiStr.ToJavaString());
-            textView.HintFormatted = processed;
-        }
+        ///// <summary>
+        ///// 设置 <see cref="TextView.Hint"/>，字符串中可能有 emoji 字符
+        ///// <para>https://developer.android.google.cn/reference/android/widget/TextView#setHint(java.lang.CharSequence)</para>
+        ///// </summary>
+        ///// <param name="maybeEmojiStr">可能有 emoji 字符的字符串</param>
+        //public static void SetHintByMaybeEmoji(this TextView textView, string maybeEmojiStr)
+        //{
+        //    // https://developer.android.google.cn/guide/topics/ui/look-and-feel/emoji-compat#using-emojicompat-without-widgets
+        //    var processed = EmojiCompat.Get().ProcessFormatted(maybeEmojiStr.ToJavaString());
+        //    textView.HintFormatted = processed;
+        //}
 
         /// <summary>
         /// Sets the text color for all the states (normal, selected, focused) to be this color.
@@ -57,6 +58,47 @@ namespace System
                 filters = items.Where(x => x != null && !types.Contains(x.GetType())).Concat(filters).ToArray();
             }
             textView.SetFilters(filters);
+        }
+
+        /// <summary>
+        /// 设置文本输入框的最大长度限制
+        /// </summary>
+        /// <param name="textView"></param>
+        /// <param name="value"></param>
+        public static void SetMaxLength(this TextView textView, int value)
+        {
+            if (value > 0)
+            {
+                textView.AddFilters(new InputFilterLengthFilter(value));
+            }
+            else
+            {
+                var items = textView.GetFilters();
+                if (items.Any_Nullable(x => x.GetType() == typeof(InputFilterLengthFilter)))
+                {
+                    var filters = items.Where(x => x.GetType() != typeof(InputFilterLengthFilter)).ToArray();
+                    textView.SetFilters(filters);
+                }
+            }
+        }
+
+        /// <summary>
+        /// 设置材料设计文本输入框布局的最大长度限制，仅 UI 样式生效，并不会限制最大输入长度且在超出后呈红色错误样式，如需输入限制需调用 <see cref="SetMaxLength(TextView, int)"/>
+        /// </summary>
+        /// <param name="textInputLayout"></param>
+        /// <param name="value"></param>
+        public static void SetMaxLength(this TextInputLayout textInputLayout, int value)
+        {
+            if (value > 0)
+            {
+                textInputLayout.CounterEnabled = true;
+                textInputLayout.CounterMaxLength = value;
+            }
+            else
+            {
+                textInputLayout.CounterEnabled = false;
+                textInputLayout.CounterMaxLength = value;
+            }
         }
 
         /// <summary>
@@ -127,12 +169,13 @@ namespace System
         }
 
         /// <summary>
-        /// 设置输入框的类型(手机号码)
+        /// 设置仅能输入数字
         /// </summary>
         /// <param name="textView"></param>
-        public static void SetPhoneNumberType(this TextView textView)
+        /// <param name="accepted"></param>
+        public static void SetDigitsKeyListener(this TextView textView, string accepted = Constants.Digits)
         {
-            textView.KeyListener = DigitsKeyListener.GetInstance(accepted: Constants.Digits);
+            textView.KeyListener = DigitsKeyListener.GetInstance(accepted);
         }
     }
 }

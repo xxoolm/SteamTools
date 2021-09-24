@@ -1,4 +1,4 @@
-﻿namespace System
+namespace System
 {
     /// <summary>
     /// 文件扩展名(FileExtensions)
@@ -14,6 +14,8 @@
         public const string TXT = ".txt";
 
         public const string JPG = ".jpg";
+
+        public const string JPEG = ".jpeg";
 
         public const string PNG = ".png";
 
@@ -49,8 +51,44 @@
 
         public const string TAR_GZ = ".tgz";
 
+        public const string TAR_BR = ".tbr";
+
         public const string BIN = ".bin";
 
         public const string APNG = ".apng";
+
+        public const string EXE = ".exe";
+
+        public const string DMG = ".dmg";
+
+        public const string _7Z = ".7z";
+
+        public const string APPX = ".appx";
+
+        public const string MSIX = ".msix";
+
+        public const string APPX_Bundle = ".appxbundle";
+
+        public const string MSIX_Bundle = ".msixbundle";
+
+        public const string AppInstaller = ".appinstaller";
+
+        public const string MPO = ".mpo";
+
+        public const string DownloadCache = ".download_cache";
+
+        public static string Clean(string extension, bool trimLeadingPeriod = false)
+        {
+            if (string.IsNullOrWhiteSpace(extension))
+                return string.Empty;
+
+            extension = extension.TrimStart('*');
+            extension = extension.TrimStart('.');
+
+            if (!trimLeadingPeriod)
+                extension = "." + extension;
+
+            return extension;
+        }
     }
 }

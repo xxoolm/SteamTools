@@ -1,4 +1,4 @@
-﻿/* 适用于 Windwos 7 OS 的 疑难解答助手
+/* 适用于 Windwos 7 OS 的 疑难解答助手
  * 主要逻辑：if 安装了补丁 KB3063858
  * 直接运行主程序
  * else 本地化文本提示未安装补丁，引导用户进行下载
@@ -16,13 +16,11 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Properties;
-using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 
-[assembly: AssemblyTitle(ThisAssembly.AssemblyTrademark)]
 namespace System
 {
     static class Program
@@ -31,6 +29,8 @@ namespace System
         internal static readonly Process currentProcess = Process.GetCurrentProcess();
         internal static string thisFilePath = "";
         internal static string appFilePath = "";
+        internal const string binDirName = "bin";
+        internal const string win7MarkName = ".win7";
 
         /// <summary>
         /// 在浏览器中打开补丁KB3063858的下载地址
@@ -49,7 +49,6 @@ namespace System
         /// <returns></returns>
         internal static bool CheckInstalled_KB3063858()
         {
-            const string KB3063858 = "KB3063858";
             using var p = new Process();
             p.StartInfo.FileName = "cmd";
             p.StartInfo.UseShellExecute = false;
@@ -62,7 +61,15 @@ namespace System
             p.StandardInput.AutoFlush = true;
             var str = p.StandardOutput.ReadToEnd();
             p.WaitForExit();
-            return str.Contains(KB3063858);
+            var items = str.Split(new[] { "KB" }, StringSplitOptions.RemoveEmptyEntries).Where(x => x.Length >= 7).Select(x => x.Substring(0, 7));
+            foreach (var item in items)
+            {
+                if (int.TryParse(item, out var value))
+                {
+                    if (value >= 3063858) return true;
+                }
+            }
+            return false;
         }
 
         /// <summary>

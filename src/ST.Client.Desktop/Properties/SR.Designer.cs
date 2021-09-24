@@ -61,12 +61,57 @@ namespace System.Application.Properties {
         }
         
         /// <summary>
-        ///   查找类似 echo &quot;{4}&quot;
-        ///taskkill /f /im &quot;{0}&quot;
+        ///   查找类似 文件属性为只读，修改失败 的本地化字符串。
+        /// </summary>
+        internal static string FileAttributeIsReadOnlyModifyFail {
+            get {
+                return ResourceManager.GetString("FileAttributeIsReadOnlyModifyFail", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 文件大小过大 的本地化字符串。
+        /// </summary>
+        internal static string FileSizeTooLarge {
+            get {
+                return ResourceManager.GetString("FileSizeTooLarge", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 文件访问被拒绝，没有权限 的本地化字符串。
+        /// </summary>
+        internal static string FileUnauthorized {
+            get {
+                return ResourceManager.GetString("FileUnauthorized", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 操作 hosts 错误 {0} 的本地化字符串。
+        /// </summary>
+        internal static string OperationHostsError_ {
+            get {
+                return ResourceManager.GetString("OperationHostsError_", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 @echo off
+        ///:loop
+        ///ping -n 1 127.0.0.1 
+        ///tasklist|find /i &quot;{0}&quot;
+        ///if %errorlevel%==0 (
+        ///taskkill /im &quot;{0}&quot; /f
+        ///)
+        ///else(
+        ///taskkill /im &quot;{0}&quot; /f
         ///xcopy /y /c /h /r /s &quot;{1}\*.*&quot; &quot;{2}&quot;
         ///rmdir /s /q &quot;{1}&quot;
         ///&quot;{3}&quot;
-        ///del %0 的本地化字符串。
+        ///del %0
+        ///)
+        ///goto :loop 的本地化字符串。
         /// </summary>
         internal static string ProgramUpdateCmd_ {
             get {

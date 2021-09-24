@@ -1,18 +1,13 @@
 using System.Application.Models;
-using System.Application.Mvvm;
 using System.Collections.Generic;
+using System.Reactive.Disposables;
 using System.Windows.Input;
 
 namespace System.Application.Services
 {
-    public interface IDesktopAppService
+    public interface IDesktopAppService : IAppService, IClipboardPlatformService
     {
-        public static IDesktopAppService Instance => DI.Get<IDesktopAppService>();
-
-        /// <summary>
-        /// 当前桌面应用的主题
-        /// </summary>
-        AppTheme Theme { get; set; }
+        new static IDesktopAppService Instance => DI.Get<IDesktopAppService>();
 
         /// <summary>
         /// 切换当前桌面应用的主题而不改变设置值
@@ -35,8 +30,6 @@ namespace System.Application.Services
         /// </summary>
         IReadOnlyDictionary<string, ICommand> NotifyIconMenus { get; }
 
-        void SetClipboardText(string? s);
-
         bool IsCefInitComplete { get; }
 
         CompositeDisposable CompositeDisposable { get; }
@@ -46,5 +39,12 @@ namespace System.Application.Services
         /// </summary>
         /// <returns></returns>
         bool HasActiveWindow();
+
+        void SetDesktopBackgroundWindow();
+
+        /// <summary>
+        /// 获取当前渲染子系统名称
+        /// </summary>
+        string RenderingSubsystemName => string.Empty;
     }
 }
