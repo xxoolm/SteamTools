@@ -3,6 +3,12 @@
 default_base_path="$HOME/WattToolkit"
 base_path="$default_base_path"
 
+# 检查是否以root身份执行
+if [ "$EUID" -eq 0 ]; then
+  echo "此脚本不能以root身份执行。"
+  exit 1
+fi
+
 # 循环直到用户输入有效路径或直接回车
 while true; do
     # 使用 zenity 提示用户选择安装路径或使用默认路径
@@ -41,7 +47,45 @@ base_url="https://api.steampp.net"
 architecture=1
 app_name="Watt Toolkit"
 PROCESS_NAMES=("$exec_name" "$app_name")
-export LC_ALL=en_US.UTF-8
+Check_LC_Code() {
+    # 检查当前 LANG 环境变量
+    current_lang="${LC_ALL:-$LANG}"
+    echo "当前语言环境: $current_lang"
+
+    # 检查是否为 C 或 C.UTF-8
+    if [ "$current_lang" = "C" ] || [ "$current_lang" = "C.UTF-8" ]; then
+        echo "当前语言环境是 C 或 C.UTF-8，需要修改。"
+
+        # 列出系统支持的语言环境
+        supported_locales=$(locale -a)
+        if [ -z "$supported_locales" ]; then
+            echo "未能获取到支持的语言环境列表。请检查系统配置。"
+            return 1
+        fi
+
+        # 遍历支持的语言环境列表，找到第一个不是 C 或 C.UTF-8 的项
+        first_non_c_locale=""
+        for locale in $supported_locales; do
+            if [ "$locale" != "C" ] && [ "$locale" != "C.UTF-8" ]; then
+                first_non_c_locale="$locale"
+                break
+            fi
+        done
+
+        # 检查是否找到了非 C/C.UTF-8 的语言环境
+        if [ -n "$first_non_c_locale" ]; then
+            echo "修改语言环境为支持列表中的第一个非 C/C.UTF-8 项：$first_non_c_locale"
+            export LC_ALL="$first_non_c_locale"
+            echo "语言环境已修改为 $first_non_c_locale。"
+        else
+            echo "未能找到非 C/C.UTF-8 的语言环境。请检查系统配置。"
+            return 1
+        fi
+    else
+        echo "当前语言环境不是 C 或 C.UTF-8，无需修改。"
+    fi
+}
+Check_LC_Code
 Install_certutil() {
     # 判断发行版类型
     if command -v certutil &>/dev/null; then
@@ -360,34 +404,44 @@ Kill_Process
 Decompression
 # xdg-icon-resource install "$base_path/Icons/Watt-Toolkit.png" --size 128 Watt-Toolkit
 InitDesktop() {
+    # 检查XDG_DESKTOP_DIR环境变量，如果未设置则使用默认值
+    XDG_DESKTOP_DIR="${XDG_DESKTOP_DIR:-$HOME/Desktop}"
+
     while true; do
         # 使用 zenity 提示用户选择安装路径或使用默认路径
-        choice=$(zenity --list --radiolist --title="请选择要添加到的位置" --column="选择" --column="路径" TRUE "$HOME/.local/share/applications/" FALSE "$HOME/Desktop")
+        choice=$(zenity --list --radiolist --title="请选择要添加到的位置" \
+            --column="选择" --column="路径" \
+            TRUE "$XDG_DESKTOP_DIR" \
+            FALSE "$HOME/.local/share/applications/")
 
         # 检查用户输入
         if [ "$choice" == "$HOME/.local/share/applications/" ]; then
             target_dir="$HOME/.local/share/applications/"
             break
-        elif [ "$choice" == "$HOME/Desktop" ]; then
-            target_dir="$HOME/Desktop/"
+        elif [ "$choice" == "$XDG_DESKTOP_DIR" ]; then
+            target_dir="$XDG_DESKTOP_DIR"
             break
         else
-            echo "无效选项，请输入 1 或 2。"
+            # 无效选项时给出提示，并继续循环
+            zenity --info --text="无效选项，请重新选择。"
         fi
     done
-    #添加桌面文件
+
+    # 添加桌面文件
     rm -rf "$target_dir/Watt Toolkit.desktop" 2>/dev/null
-    echo "#!/usr/bin/env xdg-open
+    cat <<EOT > "$target_dir/Watt Toolkit.desktop"
 [Desktop Entry]
 Name=Watt Toolkit
 Exec=$base_path/$exec_name.sh
 Icon=$base_path/Icons/Watt-Toolkit.png
 Terminal=false
 Type=Application
-StartupNotify=false" >"$target_dir/Watt Toolkit.desktop"
+StartupNotify=false
+EOT
     chmod +x "$target_dir/Watt Toolkit.desktop"
-
 }
+
+
 InitDesktop
 # update-desktop-database ~/.local/share/applications
 #运行程序
