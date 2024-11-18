@@ -54,8 +54,11 @@ sealed class AvaloniaToastServiceImpl : IToastService
             }
         }
 
-        var notificationType = GetNotificationType(icon);
-        NotificationManager.Show(text, notificationType: notificationType);
+        if (NotificationManager != null)
+        {
+            var notificationType = GetNotificationType(icon);
+            NotificationManager.Show(text, notificationType: notificationType);
+        }
     }
 
     /// <inheritdoc cref="Show(string, int?)"/>
