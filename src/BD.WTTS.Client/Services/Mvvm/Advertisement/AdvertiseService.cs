@@ -11,10 +11,10 @@ public sealed class AdvertiseService : ReactiveObject
     public static AdvertiseService Current => mCurrent.Value;
 
     [Reactive]
-    public ObservableCollection<AdvertisementDTO>? HorizontalBannerAdvertisements { get; set; }
+    public ObservableCollection<AdvertisementDTOV1>? HorizontalBannerAdvertisements { get; set; }
 
     [Reactive]
-    public ObservableCollection<AdvertisementDTO>? VerticalBannerAdvertisements { get; set; }
+    public ObservableCollection<AdvertisementDTOV1>? VerticalBannerAdvertisements { get; set; }
 
     [Reactive]
     public bool IsInitialized { get; set; }
@@ -84,10 +84,10 @@ public sealed class AdvertiseService : ReactiveObject
         if (result.IsSuccess && result.Content != null)
         {
             HorizontalBannerAdvertisements = null;
-            HorizontalBannerAdvertisements = new ObservableCollection<AdvertisementDTO>(result.Content.Where(x => x.Standard == AdvertisementOrientation.Horizontal).OrderBy(x => x.Order));
+            HorizontalBannerAdvertisements = new ObservableCollection<AdvertisementDTOV1>(result.Content.Where(x => x.Standard == AdvertisementOrientation.Horizontal).OrderBy(x => x.Order));
 
             VerticalBannerAdvertisements = null;
-            VerticalBannerAdvertisements = new ObservableCollection<AdvertisementDTO>(result.Content.Where(x => x.Standard == AdvertisementOrientation.Vertical).OrderBy(x => x.Order));
+            VerticalBannerAdvertisements = new ObservableCollection<AdvertisementDTOV1>(result.Content.Where(x => x.Standard == AdvertisementOrientation.Vertical).OrderBy(x => x.Order));
         }
         else
         {
