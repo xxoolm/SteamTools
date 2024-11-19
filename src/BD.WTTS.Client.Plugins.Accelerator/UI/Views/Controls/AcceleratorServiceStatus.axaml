@@ -7,11 +7,17 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:spp="https://steampp.net/ui"
     xmlns:ui="using:FluentAvalonia.UI.Controls"
+    xmlns:local="using:BD.WTTS.UI"
     d:DesignHeight="450"
     d:DesignWidth="800"
     x:CompileBindings="True"
     x:DataType="spp:AcceleratorPageViewModel"
     mc:Ignorable="d">
+
+    <UserControl.Resources>
+        <local:StringNotEmptyToVisibilityConverter x:Key="StringNotEmptyToVisibilityConverter" />
+    </UserControl.Resources>
+    
     <ScrollViewer
         Padding="0,0,10,0"
         HorizontalScrollBarVisibility="Disabled"
@@ -71,14 +77,24 @@
                                                             Text="Beta" />
                                                     </Border>
                                                 </StackPanel>
-                                                <TextBlock
+                                                <StackPanel 
+                                                    Orientation="Horizontal"
                                                     Margin="0,0,4,0"
                                                     HorizontalAlignment="Right"
-                                                    DockPanel.Dock="Right"
-                                                    Foreground="{Binding DelayColor}"
-                                                    Text="{Binding DelayMillseconds}"
-                                                    ToolTip.ShowDelay="0"
-                                                    ToolTip.Tip="此数值代表测试网页打开访问所需时间，请以实际浏览器访问网页状况为准" />
+                                                    DockPanel.Dock="Right">
+                                                    <TextBlock x:Name="DelayValue"
+                                                        Foreground="{Binding DelayColor}" VerticalAlignment="Center"
+                                                        Text="{Binding DelayMillseconds}" />
+                                                    
+                                                    <ui:FontIcon
+                                                        Margin="3,0"
+                                                        FontSize="20"
+                                                        Glyph="&#xE946;"
+                                                        ToolTip.ShowDelay="0"
+                                                        ToolTip.Tip="此数值代表测试网页打开访问所需时间，请以实际浏览器访问网页状况为准"
+                                                        IsVisible="{Binding Text, ElementName=DelayValue, Converter={StaticResource StringNotEmptyToVisibilityConverter}}">
+                                                    </ui:FontIcon>
+                                                </StackPanel>
                                             </DockPanel>
                                         </TreeDataTemplate>
                                     </TreeView.ItemTemplate>
