@@ -36,4 +36,9 @@ public partial class AcceleratorPathAskBox : ReactiveUserControl<MessageBoxWindo
     {
         this.ViewModel?.Close?.Invoke(true);
     }
+
+    private void CustomInstallButton_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        PathSelect.IsVisible = !PathSelect.IsVisible;
+    }
 }
