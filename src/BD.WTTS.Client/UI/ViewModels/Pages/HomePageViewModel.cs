@@ -19,7 +19,7 @@ public sealed class HomePageViewModel : TabItemViewModel
     public ObservableCollection<ArticleItemDTO> Articles { get; set; }
 
     [Reactive]
-    public ObservableCollection<AdvertisementDTOV1> NavigationBanners { get; set; }
+    public ObservableCollection<AdvertisementDTO> NavigationBanners { get; set; }
 
     [Reactive]
     //public ObservableCollection<List<ShopRecommendGoodItem>> Shops { get; set; }
@@ -32,7 +32,7 @@ public sealed class HomePageViewModel : TabItemViewModel
 #pragma warning disable CS8625 // 初始化3个null 为解决调试报错中断
         Articles = new ObservableCollection<ArticleItemDTO>() { null, null, null };
 #pragma warning restore CS8625 // 无法将 null 字面量转换为非 null 的引用类型。
-        NavigationBanners = new ObservableCollection<AdvertisementDTOV1>();
+        NavigationBanners = new ObservableCollection<AdvertisementDTO>();
         //Shops = new ObservableCollection<List<ShopRecommendGoodItem>>();
         Shops = new ObservableCollection<ShopRecommendGoodItem>();
 
