@@ -147,8 +147,8 @@ public sealed class UserService : ReactiveObject
             CurrentSteamUser = null;
             AvatarPath = null;
         };
-        OpenAuthWattGameCommand = ReactiveCommand.Create<string>(url => OpenAuthUrl(url, FastLoginWebChannel.WattGame));
-        OpenAuthOfficialCommand = ReactiveCommand.Create<string>(url => OpenAuthUrl(url, FastLoginWebChannel.OfficialWebsite));
+        OpenAuthWattGameCommand = ReactiveCommand.CreateFromTask<string>(async url => await OpenAuthUrl(url, FastLoginWebChannel.WattGame));
+        OpenAuthOfficialCommand = ReactiveCommand.CreateFromTask<string>(async url => await OpenAuthUrl(url, FastLoginWebChannel.OfficialWebsite));
         Task.Run(Initialize).ForgetAndDispose();
     }
 
@@ -224,21 +224,22 @@ public sealed class UserService : ReactiveObject
     /// <returns></returns>
     public async Task OpenAuthUrl(string url)
     {
-        if (url.StartsWith(Constants.Urls.WattGame, StringComparison.OrdinalIgnoreCase))
-        {
-            OpenAuthUrl(url, FastLoginWebChannel.WattGame);
-            return;
-        }
 
-        var token = await userManager.GetAuthTokenAsync();
-        if (token == null)
-        {
-            Browser2.Open(url.ToString());
-        }
-        else
-        {
-            Browser2.Open(string.Format(Constants.Urls.OfficialWebsite_Fast_Login_, token.AccessToken, HttpUtility.UrlEncode(token.ExpiresIn.ToString("R")), HttpUtility.UrlEncode(url)));
-        }
+        await OpenAuthUrl(url, url.StartsWith(Constants.Urls.WattGame, StringComparison.OrdinalIgnoreCase) ? FastLoginWebChannel.WattGame : FastLoginWebChannel.OfficialWebsite);
+        //if (url.StartsWith(Constants.Urls.WattGame, StringComparison.OrdinalIgnoreCase))
+        //{
+        //    return;
+        //}
+
+        //var token = await userManager.GetAuthTokenAsync();
+        //if (token == null)
+        //{
+        //    Browser2.Open(url.ToString());
+        //}
+        //else
+        //{
+        //    Browser2.Open(string.Format(Constants.Urls.OfficialWebsite_Fast_Login_, token.AccessToken, HttpUtility.UrlEncode(token.ExpiresIn.ToString("R")), HttpUtility.UrlEncode(url)));
+        //}
     }
 
     public async Task RefreshUserAvatarAsync()
@@ -322,38 +323,28 @@ public sealed class UserService : ReactiveObject
     /// </summary>
     /// <param name="url">跳转地址</param>
     /// <param name="channel">Web 跳转渠道</param>
-    public async void OpenAuthUrl(string url, FastLoginWebChannel channel = FastLoginWebChannel.OfficialWebsite)
+    public async Task OpenAuthUrl(string url, FastLoginWebChannel channel = FastLoginWebChannel.OfficialWebsite)
     {
         switch (channel)
         {
 
             case FastLoginWebChannel.OfficialWebsite:
                 var token = await userManager.GetAuthTokenAsync();
-                if (token == null)
+                if (token != null)
                 {
-                    Browser2.Open(url.ToString());
+                    await Browser2.OpenAsync(string.Format(Constants.Urls.OfficialWebsite_Fast_Login_, token.AccessToken, HttpUtility.UrlEncode(token.ExpiresIn.ToString("R")), HttpUtility.UrlEncode(url)));
                 }
-                else
-                {
-                    Browser2.Open(string.Format(Constants.Urls.OfficialWebsite_Fast_Login_, token.AccessToken, HttpUtility.UrlEncode(token.ExpiresIn.ToString()), HttpUtility.UrlEncode(url)));
-                }
-                break;
+                return;
             case FastLoginWebChannel.WattGame:
                 var shopToken = await userManager.GetShopAuthTokenAsync();
-                if (shopToken == null)
-                {
-                    Browser2.Open(url.ToString());
-                }
-                else
+                if (shopToken != null)
                 {
                     var cookieMaxAge = (shopToken.ExpiresIn - DateTimeOffset.Now).TotalSeconds;
-                    Browser2.Open(string.Format(Constants.Urls.WattGame_Fast_Login_, shopToken.AccessToken, HttpUtility.UrlEncode(cookieMaxAge.ToString()), HttpUtility.UrlEncode(url)));
+                    await Browser2.OpenAsync(string.Format(Constants.Urls.WattGame_Fast_Login_, shopToken.AccessToken, HttpUtility.UrlEncode(cookieMaxAge.ToString()), HttpUtility.UrlEncode(url)));
                 }
-                break;
-            default:
-                Browser2.Open(url.ToString());
-                break;
+                return;
         }
+        await Browser2.OpenAsync(url.ToString());
     }
 
     /// <summary>
