@@ -180,6 +180,17 @@ public sealed class ASFService : ReactiveObject
             ActionItem.Repo => "https://github.com/JustArchiNET/ArchiSteamFarm",
             ActionItem.Wiki => "https://github.com/JustArchiNET/ArchiSteamFarm/wiki/Home-zh-CN",
             ActionItem.ConfigGenerator => "https://justarchinet.github.io/ASF-WebConfigGenerator",
+            _ => string.Empty,
+        };
+
+        if (url != string.Empty)
+        {
+            await Browser2.OpenAsync(url, BrowserLaunchMode.External);
+            return;
+        }
+
+        url = tag switch
+        {
             ActionItem.WebConfig => IPCUrl + "/asf-config",
             ActionItem.WebAddBot => IPCUrl + "/bot/new",
             _ => IPCUrl,
