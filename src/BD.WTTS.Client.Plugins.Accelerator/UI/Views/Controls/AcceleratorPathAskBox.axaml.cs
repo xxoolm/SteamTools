@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Platform.Storage;
 using Avalonia.ReactiveUI;
+using BD.WTTS.Helpers;
 
 namespace BD.WTTS.UI.Views.Controls;
 
@@ -9,6 +10,8 @@ public partial class AcceleratorPathAskBox : ReactiveUserControl<MessageBoxWindo
     public AcceleratorPathAskBox()
     {
         InitializeComponent();
+
+        TracepointHelper.TrackEvent("AcceleratorPathAskBoxShow");
     }
 
     private async void SelectWattAcceleratorInstallPath(object? sender, Avalonia.Interactivity.RoutedEventArgs e)

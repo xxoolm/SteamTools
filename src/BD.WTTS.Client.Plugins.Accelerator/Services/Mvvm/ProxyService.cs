@@ -1,5 +1,6 @@
 // ReSharper disable once CheckNamespace
 using Avalonia.Data;
+using BD.WTTS.Helpers;
 using Google.Protobuf.WellKnownTypes;
 using Org.BouncyCastle.Bcpg.OpenPgp;
 using System.Linq;

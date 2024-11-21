@@ -2,6 +2,7 @@ using AppResources = BD.WTTS.Client.Resources.Strings;
 using SJsonSerializer = System.Text.Json.JsonSerializer;
 using Avalonia.Platform;
 using BD.WTTS.UI.Views.Pages;
+using BD.WTTS.Helpers;
 
 namespace BD.WTTS.UI.ViewModels;
 
@@ -46,6 +47,9 @@ public sealed partial class GameAccountPageViewModel
 
     public void AddPlatform(PlatformAccount platform)
     {
+        TracepointHelper.TrackEvent("GameAccountAddPlatform", new Dictionary<string, string> {
+                { "Name", platform.Platform.ToString() },
+        });
         GamePlatforms?.Add(platform);
         AddGamePlatforms?.Remove(platform);
         GameAccountSettings.EnablePlatforms.Add(platform.FullName);

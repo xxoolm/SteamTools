@@ -1,8 +1,10 @@
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Interactivity;
+using BD.WTTS.Helpers;
 using BD.WTTS.UI.Views.Pages;
 using FluentAvalonia.UI.Media.Animation;
+using System.Runtime.Devices;
 
 namespace BD.WTTS.UI.Views.Controls;
 
@@ -17,6 +19,10 @@ public partial class AuthenticatorImportMethodSelect : UserControl
     {
         if (sender is AppItem item && item.Tag is AuthenticatorImportMethod importMethod && item.ClickCommand == null && AuthenticatorImportPage.InnerFrame != null)
         {
+            TracepointHelper.TrackEvent("AuthenticatorImport", new Dictionary<string, string> {
+                { "ImportMethod", importMethod.Name },
+            });
+
             AuthenticatorImportPage.InnerFrame.Navigate(importMethod.PageType, null, new SlideNavigationTransitionInfo
             {
                 Effect = SlideNavigationTransitionEffect.FromRight,

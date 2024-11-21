@@ -3,6 +3,8 @@ using BD.SteamClient.Models.Idle;
 using BD.SteamClient.Services;
 using BD.SteamClient.Constants;
 using Avalonia.Threading;
+using System.Runtime.Devices;
+using BD.WTTS.Helpers;
 
 namespace BD.WTTS.UI.ViewModels;
 
@@ -112,6 +114,8 @@ public sealed partial class IdleCardPageViewModel : ViewModelBase
 
             if (!RunState)
             {
+                TracepointHelper.TrackEvent("IdleCardRun");
+
                 if (SteamLoginState.Success && SteamLoginState.SteamId != (ulong?)SteamConnectService.Current.CurrentSteamUser?.SteamId64)
                 {
                     Toast.Show(ToastIcon.Warning, Strings.SteamIdle_LoginSteamUserError);

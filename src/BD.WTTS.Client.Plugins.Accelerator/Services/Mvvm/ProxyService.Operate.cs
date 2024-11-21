@@ -1,4 +1,6 @@
 // ReSharper disable once CheckNamespace
+using BD.WTTS.Helpers;
+
 namespace BD.WTTS.Services;
 
 partial class ProxyService
@@ -35,6 +37,11 @@ partial class ProxyService
         {
             Toast.Show(ToastIcon.Warning, Strings.CommunityFix_AccEmpty);
         }
+
+        TracepointHelper.TrackEvent("StartProxy", new Dictionary<string, string> {
+            { "ProxyType", ProxySettings.ProxyMode.Value.ToString() },
+            { "ProxyScriptStatus", ProxySettings.IsEnableScript.Value.ToString() },
+        });
 
         IReadOnlyCollection<ScriptIPCDTO>? scripts = default;
         bool isEnableScript = ProxySettings.IsEnableScript.Value;

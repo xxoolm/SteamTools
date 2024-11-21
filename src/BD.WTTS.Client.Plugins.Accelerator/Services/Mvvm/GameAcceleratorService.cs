@@ -2,6 +2,7 @@
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using BD.Common.Models;
+using BD.WTTS.Helpers;
 using BD.WTTS.UI.Views.Controls;
 using BD.WTTS.UI.Views.Pages;
 using FluentAvalonia.UI.Controls;
@@ -52,7 +53,7 @@ public sealed partial class GameAcceleratorService
     [Reactive]
     public DateTime? VipEndTime { get; set; }
 
-    const string VipEndTimeStringDef = "新用户免费试用 2 天";
+    const string VipEndTimeStringDef = "新用户免费试用";
 
     [Reactive]
     public string? VipEndTimeString { get; set; } = VipEndTimeStringDef;
@@ -356,6 +357,12 @@ public sealed partial class GameAcceleratorService
                 app.IsAccelerating = false;
                 return;
             }
+
+            TracepointHelper.TrackEvent(nameof(GameAccelerator), new Dictionary<string, string> {
+                { "GameId", app.Id.ToString() },
+                { "GameName", app.Name ?? string.Empty },
+            });
+
             var xunYouIsInstall = await Ioc.Get<IAcceleratorService>().XY_IsInstall();
             if (xunYouIsInstall.HandleUI(out var isInstall))
             {
@@ -604,6 +611,7 @@ public sealed partial class GameAcceleratorService
                 Toast.Show(ToastIcon.Info, "已安装Watt加速器");
                 return;
             }
+            TracepointHelper.TrackEvent("DownloadInstallAccelerator");
             var td = new TaskDialog
             {
                 Title = "下载插件",
