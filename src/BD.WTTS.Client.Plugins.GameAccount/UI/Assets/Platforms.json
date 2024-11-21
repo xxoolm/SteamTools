@@ -150,11 +150,15 @@
     "ExesToEnd": [ "Battle.net" ],
     "ClearPaths": [ "SAME_AS_LOGIN_FILES" ],
     "LoginFiles": {
-      "JSON_SELECT_FIRST,::%AppData%\\Battle.net\\Battle.net.config::$.Client.SavedAccountNames": "email.json"
+      "JSON_SELECT_FIRST,::%AppData%\\Battle.net\\Battle.net.config::$.Client.SavedAccountNames": "email.json",
+      "JSON_SELECT_FIRST,::%AppData%\\Battle.net\\Battle.net.config::$..Services.LastLoginRegion": "LastLoginRegion",
+      "JSON_SELECT_FIRST,::%AppData%\\Battle.net\\Battle.net.config::$..Services.LastLoginAddress": "LastLoginAddress",
+      "JSON_SELECT_FIRST,::%AppData%\\Battle.net\\Battle.net.config::$..Services.LastLoginTassadar": "LastLoginTassadar",
+      "%AppData%\\Battle.net\\WattToolkit.id": "WattToolkit.id"
     },
     "IsExitBeforeInteract": true,
-    "UniqueIdPath": "%AppData%\\Battle.net\\Battle.net.config::$.Client.SavedAccountNames",
-    "UniqueIdType": 5,
+    "UniqueIdPath": "%AppData%\\Battle.net\\WattToolkit.id",
+    "UniqueIdType": 1,
     "AllFilesRequired": true
   },
   {

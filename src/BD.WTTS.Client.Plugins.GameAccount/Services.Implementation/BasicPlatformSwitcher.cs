@@ -63,17 +63,10 @@ public sealed class BasicPlatformSwitcher : IPlatformSwitcher
 
                 var regValue = regJson[accFile] ?? "";
 
-                if (DesktopBridge.IsRunningAsUwp)
+                if (!Registry2.SetRegistryKey(accFile[4..], regValue)) // Remove "REG:" and read data
                 {
-                    await SetEpicCurrentUserAsync(regValue);
-                }
-                else
-                {
-                    if (!Registry2.SetRegistryKey(accFile[4..], regValue)) // Remove "REG:" and read data
-                    {
-                        Toast.Show(ToastIcon.Error, AppResources.Error_WriteRegistryFailed);
-                        return false;
-                    }
+                    Toast.Show(ToastIcon.Error, AppResources.Error_WriteRegistryFailed);
+                    return false;
                 }
                 continue;
             }
@@ -90,7 +83,7 @@ public sealed class BasicPlatformSwitcher : IPlatformSwitcher
                 if (!JTokenHelper.ReplaceVarInJsonFile(path, selector, jToken))
                 {
                     Toast.Show(ToastIcon.Error, AppResources.Error_ModifyJsonFileFailed);
-                    return false;
+                    //return false;
                 }
                 continue;
             }
@@ -143,7 +136,7 @@ public sealed class BasicPlatformSwitcher : IPlatformSwitcher
         }
 
         //if (BasicSettings.AutoStart)
-        RunPlatformProcess(platform, true);
+        RunPlatformProcess(platform, false);
 
         //if (accName != "" && BasicSettings.AutoStart && AppSettings.MinimizeOnSwitch) _ = AppData.InvokeVoidAsync("hideWindow");
 
@@ -197,21 +190,6 @@ public sealed class BasicPlatformSwitcher : IPlatformSwitcher
         return true;
     }
 
-    async ValueTask SetEpicCurrentUserAsync(string userName)
-    {
-#if WINDOWS
-        string contents =
-$"""
-Windows Registry Editor Version 5.00
-; {AssemblyInfo.Trademark} BD.WTTS.Services.Implementation.BasicPlatformSwitcher.SetEpicCurrentUserAsync
-[HKEY_CURRENT_USER\Software\Epic Games\Unreal Engine\Identifiers]
-"AccountId"="{userName}"
-""";
-        var regpath = IOPath.GetCacheFilePath(WindowsPlatformServiceImpl.CacheTempDirName, "SwitchEpicUser", FileEx.Reg);
-        await WindowsPlatformServiceImpl.StartProcessRegeditAsync(regpath, contents);
-#endif
-    }
-
     async ValueTask<bool> DeleteFileOrFolder(string accFile, PlatformAccount platform)
     {
         // The "file" is a registry key
@@ -225,14 +203,7 @@ Windows Registry Editor Version 5.00
             }
             else
             {
-                if (DesktopBridge.IsRunningAsUwp)
-                {
-                    await SetEpicCurrentUserAsync(string.Empty);
-                    return true;
-                }
-                else
-                    if (Registry2.SetRegistryKey(accFile[4..])) return true;
-
+                if (Registry2.SetRegistryKey(accFile[4..])) return true;
             }
             Toast.Show(ToastIcon.Error, AppResources.Error_WriteRegistryFailed);
             return false;
