@@ -7,17 +7,11 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:spp="https://steampp.net/ui"
     xmlns:ui="using:FluentAvalonia.UI.Controls"
-    xmlns:local="using:BD.WTTS.UI"
     d:DesignHeight="450"
     d:DesignWidth="800"
     x:CompileBindings="True"
     x:DataType="spp:AcceleratorPageViewModel"
     mc:Ignorable="d">
-
-    <UserControl.Resources>
-        <local:StringNotEmptyToVisibilityConverter x:Key="StringNotEmptyToVisibilityConverter" />
-    </UserControl.Resources>
-    
     <ScrollViewer
         Padding="0,0,10,0"
         HorizontalScrollBarVisibility="Disabled"
@@ -92,7 +86,7 @@
                                                         Glyph="&#xE946;"
                                                         ToolTip.ShowDelay="0"
                                                         ToolTip.Tip="此数值代表测试网页打开访问所需时间，请以实际浏览器访问网页状况为准"
-                                                        IsVisible="{Binding Text, ElementName=DelayValue, Converter={StaticResource StringNotEmptyToVisibilityConverter}}">
+                                                        IsVisible="{Binding Text, ElementName=DelayValue, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
                                                     </ui:FontIcon>
                                                 </StackPanel>
                                             </DockPanel>
