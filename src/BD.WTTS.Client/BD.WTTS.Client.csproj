@@ -123,6 +123,8 @@
 		<PackageReference Include="SkiaSharp.HarfBuzz" />
 		<PackageReference Include="HarfBuzzSharp" />
 		<PackageReference Include="Utf8StringInterpolation" />
+		<PackageReference Include="BD.Any.AppCenter" />
+		<PackageReference Include="BD.Any.AppCenter.Analytics" />
 	</ItemGroup>
 
 	<ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) != 'windows'">

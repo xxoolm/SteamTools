@@ -1,6 +1,9 @@
 using Microsoft.AppCenter;
 using Microsoft.AppCenter.Analytics;
 using Microsoft.AppCenter.Crashes;
+#if !APP_REVERSE_PROXY && (WINDOWS || LINUX || MACCATALYST || MACOS)
+using BD_AppCenter = BD.AppCenter.AppCenter;
+#endif
 
 /// <summary>
 /// Visual Studio App Center
@@ -34,10 +37,20 @@ static partial class VisualStudioAppCenterSDK
 #pragma warning restore CS0612 // 类型或成员已过时
 #endif
         AppCenter.Start(appSecret, typeof(Analytics), typeof(Crashes));
+
+#if !USE_MS_APPCENTER_ANALYTICS && !APP_REVERSE_PROXY && (WINDOWS || LINUX || MACCATALYST || MACOS)
+        BD_AppCenter.SetDeviceInformationHelper(utils);
+        BD_AppCenter.SetPlatformHelper(utils);
+#pragma warning disable CS0612 // 类型或成员已过时
+        BD_AppCenter.SetApplicationSettingsFactory(utils);
+#pragma warning restore CS0612 // 类型或成员已过时
+
+        BD_AppCenter.Start(appSecret, typeof(Analytics));
+#endif
     }
 
 #if WINDOWS || LINUX || MACCATALYST || MACOS || APP_REVERSE_PROXY
-    internal sealed class UtilsImpl :
+    internal sealed partial class UtilsImpl :
         Microsoft.AppCenter.Utils.IAbstractDeviceInformationHelper,
         Microsoft.AppCenter.Utils.IPlatformHelper,
         Microsoft.AppCenter.Utils.IApplicationSettingsFactory,
@@ -217,5 +230,21 @@ static partial class VisualStudioAppCenterSDK
 
         #endregion
     }
+
+#if !APP_REVERSE_PROXY
+    partial class UtilsImpl :
+        BD.AppCenter.Utils.IAbstractDeviceInformationHelper,
+        BD.AppCenter.Utils.IPlatformHelper,
+        BD.AppCenter.Utils.IApplicationSettingsFactory,
+        BD.AppCenter.Utils.IApplicationSettings
+    {
+
+        #region IApplicationSettingsFactory
+
+        BD.AppCenter.Utils.IApplicationSettings BD.AppCenter.Utils.IApplicationSettingsFactory.CreateApplicationSettings() => this;
+
+        #endregion
+    }
+#endif
 #endif
 }
