@@ -76,7 +76,7 @@ public sealed partial class App : Application
                     Log.Error(nameof(Steamworks), ex, "Steamworks.SteamClient Init");
                 }
             }
-#endif 
+#endif
         }
         catch (Exception ex)
         {

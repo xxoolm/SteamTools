@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<RootNamespace>BD.WTTS</RootNamespace>
@@ -123,8 +123,10 @@
 		<PackageReference Include="SkiaSharp.HarfBuzz" />
 		<PackageReference Include="HarfBuzzSharp" />
 		<PackageReference Include="Utf8StringInterpolation" />
-		<PackageReference Include="BD.Any.AppCenter" />
-		<PackageReference Include="BD.Any.AppCenter.Analytics" />
+		<!--<PackageReference Include="BD.Any.AppCenter" />
+		<PackageReference Include="BD.Any.AppCenter.Analytics" />-->
+		<ProjectReference Include="..\..\ref\appcenter-sdk-dotnet\SDK\AppCenterAnalytics\BD.AppCenter.Analytics.Any\BD.AppCenter.Analytics.Any.csproj" />
+		<ProjectReference Include="..\..\ref\appcenter-sdk-dotnet\SDK\AppCenter\BD.AppCenter.Any\BD.AppCenter.Any.csproj" />
 	</ItemGroup>
 
 	<ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) != 'windows'">

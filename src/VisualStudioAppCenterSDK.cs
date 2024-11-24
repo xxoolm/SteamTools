@@ -45,7 +45,9 @@ static partial class VisualStudioAppCenterSDK
         BD_AppCenter.SetApplicationSettingsFactory(utils);
 #pragma warning restore CS0612 // 类型或成员已过时
 
-        BD_AppCenter.Start(appSecret, typeof(Analytics));
+        BD_AppCenter.SetLogUrl(Constants.Urls.ApiBaseUrl);
+
+        BD_AppCenter.Start(appSecret, typeof(BD.AppCenter.Analytics.Analytics));
 #endif
     }
 
