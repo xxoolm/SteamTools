@@ -1,3 +1,5 @@
+using BD.WTTS.Helpers;
+using System.Runtime.Devices;
 using static BD.WTTS.Services.IMicroServiceClient;
 
 // ReSharper disable once CheckNamespace
@@ -81,6 +83,7 @@ public sealed class NoticeService : ReactiveObject
 
     public void MarkNotificationsHasRead()
     {
+        TracepointHelper.TrackEvent("MarkNotificationsHasRead");
         GeneralSettings.LastLookNoticeDateTime.Value = DateTimeOffset.Now;
         VerifyNotificationsHasRead();
     }

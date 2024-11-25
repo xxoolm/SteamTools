@@ -47,9 +47,6 @@ public sealed partial class GameAccountPageViewModel
 
     public void AddPlatform(PlatformAccount platform)
     {
-        TracepointHelper.TrackEvent("GameAccountAddPlatform", new Dictionary<string, string> {
-                { "Name", platform.Platform.ToString() },
-        });
         GamePlatforms?.Add(platform);
         AddGamePlatforms?.Remove(platform);
         GameAccountSettings.EnablePlatforms.Add(platform.FullName);
