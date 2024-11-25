@@ -39,15 +39,18 @@ static partial class VisualStudioAppCenterSDK
         AppCenter.Start(appSecret, typeof(Analytics), typeof(Crashes));
 
 #if !USE_MS_APPCENTER_ANALYTICS && !APP_REVERSE_PROXY && (WINDOWS || LINUX || MACCATALYST || MACOS)
-        BD_AppCenter.SetDeviceInformationHelper(utils);
-        BD_AppCenter.SetPlatformHelper(utils);
+        if (Startup.Instance.IsMainProcess)
+        {
+            BD_AppCenter.SetDeviceInformationHelper(utils);
+            BD_AppCenter.SetPlatformHelper(utils);
 #pragma warning disable CS0612 // 类型或成员已过时
-        BD_AppCenter.SetApplicationSettingsFactory(utils);
+            BD_AppCenter.SetApplicationSettingsFactory(utils);
 #pragma warning restore CS0612 // 类型或成员已过时
 
-        BD_AppCenter.SetLogUrl(Constants.Urls.ApiBaseUrl);
+            BD_AppCenter.SetLogUrl(Constants.Urls.ApiBaseUrl);
 
-        BD_AppCenter.Start(appSecret, typeof(BD.AppCenter.Analytics.Analytics));
+            BD_AppCenter.Start(appSecret, typeof(BD.AppCenter.Analytics.Analytics));
+        }
 #endif
     }
 
