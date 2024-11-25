@@ -70,6 +70,7 @@ public partial class ScriptPageViewModel : TabItemViewModel
         if (UserService.Current.IsAuthenticated == false)
         {
             Toast.Show(ToastIcon.Error, "脚本商店需要登录账号才可访问");
+            UserService.Current.ShowWindow();
             return;
         }
         var model = new ScriptStorePageViewModel();

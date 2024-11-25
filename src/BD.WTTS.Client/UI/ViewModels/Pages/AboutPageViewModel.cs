@@ -168,6 +168,7 @@ Avalonia is a cross-platform UI framework for dotnet, providing a flexible styli
             {
                 Toast.Show(ToastIcon.Info,
                     Strings.YouNeedSignInToGetUID_.Format(AssemblyInfo.Trademark));
+                UserService.Current.ShowWindow();
             }
         }));
         // 账号注销

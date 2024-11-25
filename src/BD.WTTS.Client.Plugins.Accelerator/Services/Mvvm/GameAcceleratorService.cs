@@ -354,6 +354,7 @@ public sealed partial class GameAcceleratorService
             if (UserService.Current.User?.WattOpenId == null)
             {
                 Toast.Show(ToastIcon.Warning, "需要登录账号才能使用游戏加速功能!");
+                UserService.Current.ShowWindow();
                 app.IsAccelerating = false;
                 return;
             }

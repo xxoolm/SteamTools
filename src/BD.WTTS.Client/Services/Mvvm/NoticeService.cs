@@ -83,7 +83,7 @@ public sealed class NoticeService : ReactiveObject
 
     public void MarkNotificationsHasRead()
     {
-        TracepointHelper.TrackEvent("MarkNotificationsHasRead");
+        TracepointHelper.TrackEvent(nameof(MarkNotificationsHasRead));
         GeneralSettings.LastLookNoticeDateTime.Value = DateTimeOffset.Now;
         VerifyNotificationsHasRead();
     }
