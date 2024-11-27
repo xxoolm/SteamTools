@@ -106,7 +106,17 @@ partial class WindowsPlatformServiceImpl : IRegistryService
 
     public bool SetRegistryKey(string encodedPath, RegistryView view, string? value)
     {
-        if (IsPrivilegedProcess)
+        var callIpc = !IsPrivilegedProcess;
+
+        if (DesktopBridge.IsRunningAsUwp)
+        {
+            if (Startup.Instance.IsMainProcess)
+            {
+                callIpc = true;
+            }
+        }
+
+        if (!callIpc)
         {
             // 管理员权限则直接执行
             var result = SetRegistryKeyCore(encodedPath, view, value);
@@ -131,7 +141,17 @@ partial class WindowsPlatformServiceImpl : IRegistryService
 
     public bool DeleteRegistryKey(string encodedPath, RegistryView view)
     {
-        if (IsPrivilegedProcess)
+        var callIpc = !IsPrivilegedProcess;
+
+        if (DesktopBridge.IsRunningAsUwp)
+        {
+            if (Startup.Instance.IsMainProcess)
+            {
+                callIpc = true;
+            }
+        }
+
+        if (!callIpc)
         {
             // 管理员权限则直接执行
             var result = DeleteRegistryKeyCore(encodedPath, view);

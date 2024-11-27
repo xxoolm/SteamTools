@@ -23,7 +23,7 @@
 		<ValidateExecutableReferencesMatchSelfContained>false</ValidateExecutableReferencesMatchSelfContained>
 		<Deterministic>true</Deterministic>
 		<CheckEolWorkloads>false</CheckEolWorkloads>
-		<DefineConstants>REMOVE_DNS_INTERCEPT;$(DefineConstants)</DefineConstants>
+		<!--<DefineConstants>REMOVE_DNS_INTERCEPT;$(DefineConstants)</DefineConstants>-->
 	</PropertyGroup>
 	<ItemGroup>
 		<Compile Include="..\AssemblyInfo.cs">

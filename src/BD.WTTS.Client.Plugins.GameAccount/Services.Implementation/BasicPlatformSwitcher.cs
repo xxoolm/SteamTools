@@ -39,7 +39,7 @@ public sealed class BasicPlatformSwitcher : IPlatformSwitcher
         {
             var uniqueId = JTokenHelper.ReadDict(platform.FullName).FirstOrDefault(x => x.Value == accName).Key;
 
-            if (!string.IsNullOrEmpty(uniqueId) && !Registry2.SetRegistryKey(platform.UniqueIdPath, uniqueId)) // Remove "REG:" and read data
+            if (!string.IsNullOrEmpty(uniqueId) && !IRegistryService.Instance.SetRegistryKey(platform.UniqueIdPath, uniqueId)) // Remove "REG:" and read data
             {
                 Toast.Show(ToastIcon.Info, AppResources.Info_AccountAlreadyLogin);
                 return false;
@@ -63,7 +63,7 @@ public sealed class BasicPlatformSwitcher : IPlatformSwitcher
 
                 var regValue = regJson[accFile] ?? "";
 
-                if (!Registry2.SetRegistryKey(accFile[4..], regValue)) // Remove "REG:" and read data
+                if (!IRegistryService.Instance.SetRegistryKey(accFile[4..], regValue)) // Remove "REG:" and read data
                 {
                     Toast.Show(ToastIcon.Error, AppResources.Error_WriteRegistryFailed);
                     return false;
@@ -199,11 +199,11 @@ public sealed class BasicPlatformSwitcher : IPlatformSwitcher
             // If set to clear LoginCache for account before adding (Enabled by default):
             if (platform.IsRegDeleteOnClear)
             {
-                if (Registry2.DeleteRegistryKey(accFile[4..])) return true;
+                if (IRegistryService.Instance.SetRegistryKey(accFile[4..])) return true;
             }
             else
             {
-                if (Registry2.SetRegistryKey(accFile[4..])) return true;
+                if (IRegistryService.Instance.SetRegistryKey(accFile[4..])) return true;
             }
             Toast.Show(ToastIcon.Error, AppResources.Error_WriteRegistryFailed);
             return false;

@@ -34,12 +34,14 @@ public interface IPlatformSwitcher
 
     public void CreateSystemProtocol(string targetPath)
     {
+#if WINDOWS
         using var key = Registry.ClassesRoot.CreateSubKey(Constants.CUSTOM_URL_SCHEME_NAME);
         key.SetValue("URL Protocol", "");
         using var shellKey = key.CreateSubKey("shell");
         using RegistryKey openKey = shellKey.CreateSubKey("open");
         using RegistryKey commandKey = openKey.CreateSubKey("command");
         commandKey.SetValue("", "\"" + targetPath + "\" \"%1\"");
+#endif
     }
 
     public async Task<bool> CreateLoginShortcut(
