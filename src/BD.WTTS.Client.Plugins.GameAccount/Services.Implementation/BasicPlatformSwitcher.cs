@@ -199,7 +199,7 @@ public sealed class BasicPlatformSwitcher : IPlatformSwitcher
             // If set to clear LoginCache for account before adding (Enabled by default):
             if (platform.IsRegDeleteOnClear)
             {
-                if (IRegistryService.Instance.SetRegistryKey(accFile[4..])) return true;
+                if (IRegistryService.Instance.DeleteRegistryKey(accFile[4..])) return true;
             }
             else
             {
