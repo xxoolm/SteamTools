@@ -16,7 +16,7 @@ static unsafe partial class Program
 {
     static Program()
     {
-        dotnet_version_major = "8";
+        dotnet_version_major = "9";
         dotnet_version_minor = "0";
         dotnet_version_build = "0";
         dotnet_version = $"{dotnet_version_major}.{dotnet_version_minor}.{dotnet_version_build}";
@@ -426,8 +426,8 @@ static unsafe partial class Program
         if (!File.Exists(config_path) || !File.Exists(dotnetlib_path))
         {
 #if DEBUG
-            config_path = string.Join(Path.DirectorySeparatorChar.ToString(), new[] { ProjectUtils.ProjPath, "src", "BD.WTTS.Client.Avalonia.App", "bin", "Debug", $"net{dotnet_version_major}.{dotnet_version_minor}-windows10.0.19041.0", $"{dotnet_dll_name}.runtimeconfig.json" });
-            dotnetlib_path = string.Join(Path.DirectorySeparatorChar.ToString(), new[] { ProjectUtils.ProjPath, "src", "BD.WTTS.Client.Avalonia.App", "bin", "Debug", $"net{dotnet_version_major}.{dotnet_version_minor}-windows10.0.19041.0", $"{dotnet_dll_name}.dll" });
+            config_path = string.Join(Path.DirectorySeparatorChar.ToString(), new[] { ProjectUtils.ProjPath, "src", "BD.WTTS.Client.Avalonia.App", "bin", "Debug", $"net{dotnet_version_major}.{dotnet_version_minor}-windows10.0.19041", $"{dotnet_dll_name}.runtimeconfig.json" });
+            dotnetlib_path = string.Join(Path.DirectorySeparatorChar.ToString(), new[] { ProjectUtils.ProjPath, "src", "BD.WTTS.Client.Avalonia.App", "bin", "Debug", $"net{dotnet_version_major}.{dotnet_version_minor}-windows10.0.19041", $"{dotnet_dll_name}.dll" });
 #else
             ShowErrMessageBox($"Loading assembly failed \"{dotnetlib_path}\"");
             return (int)ExitCode.EntryPointFileNotFound;

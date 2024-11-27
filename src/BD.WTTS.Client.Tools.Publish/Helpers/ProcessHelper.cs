@@ -11,7 +11,16 @@ static partial class ProcessHelper
         var exitCode = process.ExitCode;
         if (exitCode != default)
         {
-            throw new ArgumentOutOfRangeException(nameof(exitCode), exitCode, null);
+            var c = $"{psi.FileName} " +
+                (string.IsNullOrWhiteSpace(psi.Arguments) ?
+                    string.Join(" ", psi.ArgumentList) :
+                    psi.Arguments);
+            Exception[] innerExceptions =
+                [
+                    new Exception(c),
+                    new ArgumentOutOfRangeException(nameof(exitCode), exitCode, null),
+                ];
+            throw new AggregateException(innerExceptions);
         }
     }
 }

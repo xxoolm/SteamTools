@@ -659,6 +659,14 @@ $"""
 
                     var aspnetcore_path = get_aspnetcore_path(programFiles);
 
+                    static string get_win_desktop_path(string rootPath) => Path.Combine(rootPath,
+                        "dotnet",
+                        "shared",
+                        "Microsoft.WindowsDesktop.App",
+                        $"{Environment.Version.Major}.{Environment.Version.Minor}.{Environment.Version.Build}");
+
+                    var win_desktop_path = get_win_desktop_path(programFiles);
+
                     static string get_netcore_path(string rootPath) => Path.Combine(rootPath,
                         "dotnet",
                         "shared",
@@ -676,6 +684,7 @@ $"""
                         File.Copy(hostfxr_path, dest_hostfxr_path);
                         CopyDirectory(netcore_path, get_netcore_path(rootPublishDir), true);
                         CopyDirectory(aspnetcore_path, get_aspnetcore_path(rootPublishDir), true);
+                        CopyDirectory(win_desktop_path, get_win_desktop_path(rootPublishDir), true);
                     }
                 }
                 break;
