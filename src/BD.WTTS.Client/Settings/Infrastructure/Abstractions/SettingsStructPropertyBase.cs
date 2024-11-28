@@ -92,8 +92,7 @@ public class SettingsStructPropertyBase<TValue, [DynamicallyAccessedMembers(Dyna
     public override void Reset(bool save = true)
     {
         var oldValue = value;
-        value = Default; // 赋值当前字段
-        setter(monitor.CurrentValue, default); // 赋值模型类属性
+        setter(monitor.CurrentValue, value = Default); // 赋值模型类属性
 
         OnValueChanged(oldValue, value); // 调用变更事件
 
