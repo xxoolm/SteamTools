@@ -251,8 +251,6 @@ public sealed class AppSplashScreen : IApplicationSplashScreen
                     App.Instance.CompositeDisposable.Add(IViewModelManager.Instance.MainWindow);
                     App.Instance.CompositeDisposable.Add(SteamConnectService.Current.Dispose);
 
-                    Helpers.TracepointHelper.TrackEvent("AppSplashScreen");
-
                     IsInitialized = true;
                 }
             }, cancellationToken: token);
