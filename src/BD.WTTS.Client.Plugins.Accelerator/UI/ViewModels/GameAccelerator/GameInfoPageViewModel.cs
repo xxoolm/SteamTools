@@ -1,3 +1,5 @@
+using BD.WTTS.Helpers;
+
 namespace BD.WTTS.UI.ViewModels;
 
 public sealed class GameInfoPageViewModel : WindowViewModel
@@ -37,6 +39,13 @@ public sealed class GameInfoPageViewModel : WindowViewModel
             Toast.Show(ToastIcon.Warning, Strings.GameAccelerator_AccelerateAreaSelectTip);
             return;
         }
+
+        TracepointHelper.TrackEvent(nameof(ImmediatelyAccelerate), new Dictionary<string, string> {
+                { "GameId", XunYouGame.Id.ToString() },
+                { "GameName", XunYouGame.Name ?? string.Empty },
+                { "SelectedArea", XunYouGame?.SelectedArea?.Name ?? string.Empty },
+                { "SelectedServer", XunYouGame?.SelectedServer?.Name ?? string.Empty },
+            });
 
         Close?.Invoke(true);
     }
