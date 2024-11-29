@@ -175,6 +175,10 @@ partial class Program
                 {
                     RenderingMode = GetRenderingMode().ToArray(),
                 });
+                builder.With(new MacOSPlatformOptions
+                {
+                    DisableDefaultApplicationMenuItems = true,
+                });
 #elif LINUX
                 builder.With(new X11PlatformOptions
                 {
