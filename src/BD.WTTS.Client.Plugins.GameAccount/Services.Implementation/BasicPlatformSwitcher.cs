@@ -1,5 +1,6 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using System.Text.Json.Nodes;
 using AppResources = BD.WTTS.Client.Resources.Strings;
 
 namespace BD.WTTS.Services.Implementation;
@@ -515,7 +516,47 @@ public sealed class BasicPlatformSwitcher : IPlatformSwitcher
                 if (js == null)
                     continue;
 
-                var originalValue = js.SelectToken(selector);
+                JToken? originalValue = null;
+
+                try
+                {
+                    originalValue = js.SelectToken(selector);
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(nameof(CurrnetUserAdd), ex, $"Failed to select token: {selector}");
+                }
+
+                if (originalValue == null)
+                {
+                    // 尝试以数组形式再次寻找
+                    try
+                    {
+                        var tokens = js.SelectTokens(selector);
+
+                        //暂时将就写一个临时的战网处理方法解决问题
+                        if (platform.Platform == ThirdpartyPlatform.BattleNet)
+                        {
+                            originalValue = tokens.FirstOrDefault(x =>
+                            {
+                                var temp = x.Parent?.Parent?.Parent?.Parent?["Path"]?.Value<string>();
+                                var temp2 = platform.FolderPath;
+                                if (temp != null && temp2 != null)
+                                    return string.Equals(
+                                        temp.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar),
+                                        temp2.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar),
+                                        StringComparison.OrdinalIgnoreCase);
+                                return false;
+                            });
+                        }
+                        originalValue ??= tokens.FirstOrDefault();
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Error(nameof(CurrnetUserAdd), ex, $"Failed to select tokens: {selector}");
+                    }
+                }
+
                 if (originalValue == null)
                     continue;
 
