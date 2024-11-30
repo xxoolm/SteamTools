@@ -82,7 +82,8 @@ public sealed class BasicPlatformSwitcher : IPlatformSwitcher
                 var selector = accFile.Split("::")[2];
                 if (!JTokenHelper.ReplaceVarInJsonFile(path, selector, jToken))
                 {
-                    Toast.Show(ToastIcon.Error, AppResources.Error_ModifyJsonFileFailed);
+                    //Toast.Show(ToastIcon.Error, AppResources.Error_ModifyJsonFileFailed);
+                    Log.Error(nameof(BasicPlatformSwitcher), $"Failed to modify JSON file: {path}");
                     //return false;
                 }
                 continue;
@@ -179,7 +180,7 @@ public sealed class BasicPlatformSwitcher : IPlatformSwitcher
         {
             var path = uniqueIdFile.Split("::")[0];
             var selector = uniqueIdFile.Split("::")[1];
-            JTokenHelper.ReplaceVarInJsonFile(path, selector, "");
+            JTokenHelper.ReplaceVarInJsonFile(path, selector, string.Empty);
         }
 
         if (platform.UniqueIdType != UniqueIdType.CREATE_ID_FILE) return true;

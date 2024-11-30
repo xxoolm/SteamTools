@@ -94,6 +94,12 @@
                         <ui:SettingsExpanderItem
                             ActionIconSource="Open"
                             Command="{Binding $parent[spp:Settings_Plugin].((spp:SettingsPageViewModel)DataContext).OpenPluginCacheDirectory_Click}"
+                            CommandParameter="{Binding Data.AppDataDirectory}"
+                            Content="{Binding Path=Res.Plugin_OpenAppDataFolder, Mode=OneWay, Source={x:Static s:ResourceService.Current}}"
+                            IsClickEnabled="True" />
+                        <ui:SettingsExpanderItem
+                            ActionIconSource="Open"
+                            Command="{Binding $parent[spp:Settings_Plugin].((spp:SettingsPageViewModel)DataContext).OpenPluginCacheDirectory_Click}"
                             CommandParameter="{Binding Data.CacheDirectory}"
                             Content="{Binding Path=Res.Plugin_OpenCacheFolder, Mode=OneWay, Source={x:Static s:ResourceService.Current}}"
                             IsClickEnabled="True" />

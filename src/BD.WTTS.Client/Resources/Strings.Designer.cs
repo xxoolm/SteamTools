@@ -5415,6 +5415,15 @@ namespace BD.WTTS.Client.Resources {
         }
         
         /// <summary>
+        ///   查找类似 打开插件 AppData 文件夹 的本地化字符串。
+        /// </summary>
+        public static string Plugin_OpenAppDataFolder {
+            get {
+                return ResourceManager.GetString("Plugin_OpenAppDataFolder", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 打开插件缓存文件夹 的本地化字符串。
         /// </summary>
         public static string Plugin_OpenCacheFolder {

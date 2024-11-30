@@ -2268,6 +2268,9 @@
 	<data name="Plugin_OpenCacheFolder" xml:space="preserve">
     <value>打开插件缓存文件夹</value>
   </data>
+	<data name="Plugin_OpenAppDataFolder" xml:space="preserve">
+    <value>打开插件 AppData 文件夹</value>
+  </data>
 	<data name="Plugin_OpenFolder" xml:space="preserve">
     <value>打开插件文件夹</value>
   </data>

@@ -148,7 +148,10 @@
     "PlatformIds": [ "b", "bnet", "battlenet", "blizzard" ],
     "DefaultExePath": "%ProgramFiles(x86)%\\Battle.net\\Battle.net.exe",
     "ExesToEnd": [ "Battle.net" ],
-    "ClearPaths": [ "SAME_AS_LOGIN_FILES" ],
+    "ClearPaths": [
+      "JSON_SELECT_FIRST,::%AppData%\\Battle.net\\Battle.net.config::$.Client.SavedAccountNames",
+      "%AppData%\\Battle.net\\WattToolkit.id"
+    ],
     "LoginFiles": {
       "JSON_SELECT_FIRST,::%AppData%\\Battle.net\\Battle.net.config::$.Client.SavedAccountNames": "email.json",
       "JSON_SELECT_FIRST,::%AppData%\\Battle.net\\Battle.net.config::$..Services.LastLoginRegion": "LastLoginRegion",
