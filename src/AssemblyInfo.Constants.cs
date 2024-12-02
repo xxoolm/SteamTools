@@ -16,14 +16,14 @@ public static partial class AssemblyInfo
     /// <summary>
     /// 预览版本号，范围 1~9，只增不减
     /// </summary>
-    const string ver_for_preview = "9";
+    const string ver_for_preview = "0";
 
     /// <summary>
     /// RC 版本号，范围 0~9，只增不减
     /// </summary>
     const string ver_for_rc = "13";
 
-    public const string FileVersion = $"{Version2}.{ver_for_rc}1{ver_for_preview}.0";
+    public const string FileVersion = $"{Version2}.{ver_for_rc}2{ver_for_preview}.0";
 
     //public const string InformationalVersion = Version;
     //public const string InformationalVersion = $"{Version}-preview.{ver_for_preview}";
