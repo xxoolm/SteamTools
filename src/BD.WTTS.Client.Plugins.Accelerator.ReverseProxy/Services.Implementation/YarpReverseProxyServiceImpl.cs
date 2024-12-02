@@ -48,26 +48,41 @@ sealed partial class YarpReverseProxyServiceImpl : ReverseProxyServiceImpl, IRev
                 platformService,
                 CertificateManager);
 
-            X509Certificate2? cer = CertificateManager.RootCertificatePackable;
-            if (cer is not null && DateTime.Now <= cer.NotAfter && cer.NotAfter <= DateTime.Now.AddMonths(1))
+            try
             {
-                var interval = cer.NotAfter - DateTime.Now;
-
-                _certificateTimer = new System.Timers.Timer(interval)
+                X509Certificate2? cer = CertificateManager.RootCertificatePackable;
+                if (cer is not null &&
+                    DateTime.Now <= cer.NotAfter && cer.NotAfter <= DateTime.Now.AddMilliseconds(int.MaxValue))
                 {
-                    AutoReset = false,
-                };
+                    var interval = cer.NotAfter - DateTime.Now;
 
-                _certificateTimer.Elapsed += async (_, _) =>
-                {
-                    ICertificateManager.Constants.CheckRootCertificate(
-                        platformService,
-                        CertificateManager);
+                    _certificateTimer = new System.Timers.Timer(interval)
+                    {
+                        AutoReset = false,
+                    };
 
-                    await StopProxyAsync();
-                    await StartProxyImpl();
-                };
-                _certificateTimer.Start();
+                    _certificateTimer.Elapsed += async (_, _) =>
+                    {
+                        try
+                        {
+                            ICertificateManager.Constants.CheckRootCertificate(
+                                platformService,
+                                CertificateManager);
+
+                            await StopProxyAsync();
+                            await StartProxyImpl();
+                        }
+                        catch (Exception e)
+                        {
+                            e.LogAndShowT(TAG, msg: "CheckRootCertificate in Timer.Elapsed Error");
+                        }
+                    };
+                    _certificateTimer.Start();
+                }
+            }
+            catch (Exception e)
+            {
+                e.LogAndShowT(TAG, msg: "CheckRootCertificate Error");
             }
         }
     }
