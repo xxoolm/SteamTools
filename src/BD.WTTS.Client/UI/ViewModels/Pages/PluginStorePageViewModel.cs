@@ -6,7 +6,7 @@ namespace BD.WTTS.UI.ViewModels;
 
 public sealed class PluginStorePageViewModel : TabItemViewModel
 {
-    public override string Name => Strings.Welcome;
+    public override string Name => Strings.Plugin_Store;
 
     public override string IconKey => "avares://BD.WTTS.Client.Avalonia/UI/Assets/Icons/home.ico";
 

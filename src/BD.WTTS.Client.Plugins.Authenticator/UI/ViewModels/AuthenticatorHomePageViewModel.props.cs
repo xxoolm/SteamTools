@@ -2,8 +2,10 @@ using KeyValuePair = BD.Common.Entities.KeyValuePair;
 
 namespace BD.WTTS.UI.ViewModels;
 
-public partial class AuthenticatorHomePageViewModel
+public partial class AuthenticatorHomePageViewModel : TabItemViewModel
 {
+    public override string Name => Strings.LocalAuth;
+
     [Reactive]
     public bool IsLoading { get; set; }
 

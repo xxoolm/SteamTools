@@ -2,8 +2,10 @@ using ArchiSteamFarm.Steam;
 
 namespace BD.WTTS.UI.ViewModels;
 
-public sealed partial class ArchiSteamFarmPlusPageViewModel
+public sealed partial class ArchiSteamFarmPlusPageViewModel : TabItemViewModel
 {
+    public override string Name => "ASF";
+
     /// <summary>
     /// 选择 ASF 可执行文件路径
     /// </summary>

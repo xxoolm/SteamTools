@@ -8,7 +8,7 @@ using BD.WTTS.Helpers;
 
 namespace BD.WTTS.UI.ViewModels;
 
-public sealed partial class IdleCardPageViewModel : ViewModelBase
+public sealed partial class IdleCardPageViewModel
 {
     readonly ISteamService SteamTool = ISteamService.Instance;
     readonly ISteamIdleCardService IdleCard = ISteamIdleCardService.Instance;

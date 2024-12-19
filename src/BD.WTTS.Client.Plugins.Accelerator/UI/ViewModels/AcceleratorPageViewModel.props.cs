@@ -4,7 +4,7 @@ namespace BD.WTTS.UI.ViewModels;
 
 public sealed partial class AcceleratorPageViewModel : TabItemViewModel
 {
-    public override string Name => Strings.Welcome;
+    public override string Name => Strings.CommunityFix;
 
     [Reactive]
     public ReadOnlyCollection<ProxyDomainGroupViewModel>? EnableProxyDomainGroupVMs { get; set; }

@@ -2,7 +2,7 @@ using BD.WTTS.UI.Views.Controls;
 
 namespace BD.WTTS.UI.ViewModels;
 
-public sealed partial class ArchiSteamFarmPlusPageViewModel : ViewModelBase
+public sealed partial class ArchiSteamFarmPlusPageViewModel
 {
 
     private readonly IArchiSteamFarmService asfService = IArchiSteamFarmService.Instance;

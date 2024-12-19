@@ -7,7 +7,7 @@ public sealed partial class GameAccountPageViewModel : TabItemViewModel
 {
     static readonly Uri PlatformsPath = new("avares://BD.WTTS.Client.Plugins.GameAccount/UI/Assets/Platforms.json");
 
-    public override string Name => Strings.Welcome;
+    public override string Name => Strings.UserFastChange;
 
     [Reactive]
     public ObservableCollection<PlatformAccount>? GamePlatforms { get; set; }

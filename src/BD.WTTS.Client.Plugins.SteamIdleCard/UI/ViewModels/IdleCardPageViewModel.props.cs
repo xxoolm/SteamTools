@@ -4,8 +4,10 @@ using BD.SteamClient.Services;
 
 namespace BD.WTTS.UI.ViewModels;
 
-public sealed partial class IdleCardPageViewModel
+public sealed partial class IdleCardPageViewModel : TabItemViewModel
 {
+    public override string Name => Strings.SteamIdleCard;
+
     /// <summary>
     /// 有限运行此游戏
     /// </summary>

@@ -12,7 +12,7 @@ using BD.WTTS.UI.Views.Controls;
 
 namespace BD.WTTS.UI.ViewModels;
 
-public sealed partial class AuthenticatorHomePageViewModel : ViewModelBase
+public sealed partial class AuthenticatorHomePageViewModel
 {
     const int MAX_SYNC_VALUE = 100;
 
